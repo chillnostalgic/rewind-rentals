@@ -310,6 +310,25 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   .spine,.cover,.btn,.tab,.era,.ch-row{transition:none}
 }
 
+/* Tip jar */
+.tip-btn{border:2px solid var(--amber);background:rgba(255,182,39,.12);color:var(--amber);border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer;transition:transform .14s cubic-bezier(.2,1.6,.4,1),box-shadow .2s}
+.tip-btn:hover,.tip-btn:focus-visible{transform:translateY(-2px) rotate(-2deg);box-shadow:0 0 0 3px var(--amber),0 0 22px rgba(255,182,39,.55);outline:none}
+.tip-btn:active{transform:scale(.94)}
+.tipjar{position:fixed;inset:0;z-index:85;display:flex;align-items:center;justify-content:center;padding:24px;background:rgba(7,3,19,.82)}
+.tip-card{position:relative;max-width:520px;width:100%;background:var(--panel);border:2px solid var(--amber);border-radius:14px;padding:30px 30px 26px;text-align:center;box-shadow:0 0 50px rgba(255,182,39,.25);animation:tipIn .45s cubic-bezier(.2,1.4,.4,1) both}
+@keyframes tipIn{from{opacity:0;transform:translateY(30px) scale(.94)}to{opacity:1;transform:none}}
+.tip-jar-art{width:84px;height:96px;margin:-74px auto 8px;border:4px solid var(--label);border-top-width:10px;border-radius:10px 10px 22px 22px;background:linear-gradient(0deg,rgba(255,182,39,.85) 0 38%,rgba(242,234,211,.12) 38%);display:flex;align-items:flex-end;justify-content:center;padding-bottom:42px}
+.tip-jar-art span{font-family:var(--display);font-size:14px;color:#1a0d2e;background:var(--label);padding:1px 6px;border-radius:3px;transform:rotate(-4deg)}
+.tip-card h2{margin:0 0 8px;font-family:var(--display);font-weight:400;font-size:28px;color:var(--label)}
+.tip-text{margin:0 auto 16px;color:#ddd5f5;max-width:40ch}
+.tip-qr{width:220px;height:220px;margin:0 auto;background:#fff;border-radius:8px;padding:10px;display:flex;align-items:center;justify-content:center}
+.tip-qr svg{width:100%;height:100%;display:block}
+.tip-qr:empty{display:none}
+.tip-hint{margin:10px 0 2px;color:var(--muted);font-size:16px}
+.tip-url{margin:0 0 18px;font-family:var(--vcr);font-size:24px;color:var(--cyan);word-break:break-all}
+.tip-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+@media (prefers-reduced-motion:reduce){.tip-card{animation:none}}
+
 /* Mode switch */
 .modes{display:flex;gap:0;border:2px solid var(--edge);border-radius:6px;overflow:hidden;margin-right:auto;margin-left:8px}
 .mode{border:0;background:transparent;color:var(--muted);padding:8px 16px;font-weight:600;cursor:pointer}
@@ -393,6 +412,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       <button class="mode hdr" id="modeTv" type="button" aria-pressed="false">Watch TV</button>
     </div>
     <div class="hdr-tools">
+      <button class="tip-btn hdr" id="tipBtn" type="button">☕ Tip jar</button>
       <button class="vcr-clock hdr blink" id="vcrClock" type="button">12:00</button>
       <button class="sound-btn hdr" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
     </div>
@@ -431,8 +451,10 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
         <div class="actions" id="actions">
           <button class="btn primary" id="playBtn" type="button">Play tape</button>
           <button class="btn" id="restartBtn" type="button" hidden>Start from the beginning</button>
+          <button class="btn" id="altBtn" type="button" hidden>Try another copy</button>
           <button class="btn" id="keepBtn" type="button" aria-pressed="false">Add to My tapes</button>
           <a class="btn ghost" id="iaLink" target="_blank" rel="noopener">View on Internet Archive</a>
+          <button class="btn ghost" id="hideBtn" type="button">Hide this tape</button>
         </div>
         <p class="msg" id="dMsg" role="alert"></p>
       </div>
@@ -457,6 +479,21 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   <p class="boot-brand">Rewind Rentals</p>
   <p class="boot-line">Auto tracking<span class="dots">...</span></p>
   <p class="boot-skip">Press any button to start</p>
+</div>
+
+<div class="tipjar" id="tipjar" hidden role="dialog" aria-modal="true" aria-labelledby="tipTitle">
+  <div class="tip-card">
+    <div class="tip-jar-art" aria-hidden="true"><span>TIPS</span></div>
+    <h2 id="tipTitle">Buy the staff a coffee</h2>
+    <p class="tip-text">Rewind Rentals is free and has no adverts of its own. If it’s brought back a few memories, a coffee helps keep the shop open and new shelves coming.</p>
+    <div class="tip-qr" id="tipQr"></div>
+    <p class="tip-hint" id="tipHint">Point your phone camera at the code</p>
+    <p class="tip-url" id="tipUrl"></p>
+    <div class="tip-actions">
+      <a class="btn primary" id="tipOpen" target="_blank" rel="noopener">Open Buy Me a Coffee</a>
+      <button class="btn" id="tipClose" type="button">Maybe later</button>
+    </div>
+  </div>
 </div>
 
 <div class="rewind" id="rewind" hidden>
@@ -513,6 +550,65 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 <script>
 (() => {
   // Shelves map to Internet Archive collections of public domain film.
+  /* ===== Settings you can change ===== */
+  const CONFIG = {
+    // 'home' = everything, for you and friends. 'public' = only the safer channels, for anything shared or paid.
+    edition: 'home',
+    // Your Buy Me a Coffee page. The tip jar shows a QR code for it on the TV.
+    supportUrl: 'https://buymeacoffee.com/YOUR-PAGE',
+    // Archive identifiers to hide for everyone (the bit after archive.org/details/)
+    blockedIds: []
+  };
+
+  /* Safety filter: keeps adult, gory and hateful uploads off every shelf, search and channel.
+     Edit the word list freely: it matches whole words in titles, tags and descriptions. */
+  const BLOCK_WORDS = new RegExp('\\b(' + [
+    // explicit
+    'porn\\w*', 'porno\\w*', 'xxx+', 'nsfw', 'hentai', 'ecchi', 'erotic\\w*', 'erotica', 'erotique', 'erotik', 'sexo', 'seks',
+    'sex', 'sexy', 'sexual\\w*', 'sexploitation', 'sex[\\s-]?tapes?', 'sex\\s?scenes?', 'nude', 'nudes', 'nudity', 'nudist\\w*', 'naturis[mt]\\w*',
+    'nudie', 'naked\\s(girls?|women|woman|men|wives|teens?)', 'desnud[ao]s?', 'nackt', 'topless', 'bottomless', 'boobs?', 'tits', 'titties', 'busty',
+    'pussy', 'cock', 'anal', 'blow[\\s-]?jobs?', 'hand[\\s-]?jobs?', 'foot[\\s-]?jobs?', 'rim[\\s-]?jobs?', 'jerk(ing)?[\\s-]?off', 'wank\\w*', 'masturbat\\w*', 'cum\\w*shot\\w*', 'creampie', 'horny', 'slut\\w*', 'whore\\w*', 'milfs?', 'gilf',
+    'orgy', 'orgies', 'threesome', 'gangbang', 'swingers?', 'hardcore', 'softcore', 'uncensored', 'jav', 'av\\sidol', 'gravure',
+    'fetish\\w*', 'bdsm', 'bondage', 'dominatrix', 'femdom', 'kink\\w*', 'lingerie', 'upskirt\\w*', 'voyeur\\w*', 'peeping', 'peep\\s?show',
+    'stag\\s(film|reel|movie)s?', 'skin\\sflicks?', 'adult\\s(film|movie|video|content|entertainment|cinema)s?', 'blue\\s(film|movie)s?',
+    'onlyfans', 'only\\s?fans', 'brazzers', 'pornhub', 'xvideos', 'xhamster', 'playboy', 'penthouse', 'hustler',
+    'cam\\s?girls?', 'cam\\s?shows?', 'webcam\\s?(girls?|shows?)', 'strip\\s?tease', 'strippers?', 'stripping', 'pole\\s?danc\\w*', 'lap\\s?danc\\w*',
+    'twerk\\w*', 'escorts?', 'hookers?', 'prostitut\\w*', 'girls\\sgone\\swild', 'hot\\sgirls?', 'sexy\\sgirls?', 'lesbian\\s(sex|porn)', 'gay\\s(sex|porn)',
+    'x-?rated', 'rated\\sx', '18\\+', 'adults?\\sonly', 'over\\s18', 'mature\\saudiences?\\sonly', 'explicit',
+    // real-world violence and gore
+    'snuff', 'behead\\w*', 'decapitat\\w*', 'execution\\s(video|footage)', 'real\\sdeath', 'faces\\sof\\sdeath', 'death\\sfootage',
+    'torture\\s(video|footage)', 'liveleak', 'bestgore', 'cartel\\s(video|execution)',
+    // hate
+    'isis', 'jihad\\w*', 'white\\s?power', 'kkk', 'neo[\\s-]?nazi\\w*', 'white\\s?supremac\\w*', 'race\\s?war', '1488', 'great\\sreplacement'
+  ].join('|') + ')\\b', 'i');
+  // Words in scripts where "whole word" matching doesn't apply (Japanese, Chinese, Korean, Russian, Arabic)
+  const BLOCK_ANYWHERE = /(порно|порн|секс|эротик|голые|色情|成人片|成人影|成人视频|无码|無碼|av女優|アダルト|エロ|18禁|裸|섹스|야동|포르노|성인영화|سكس|اباحي)/i;
+  // Only a warning sign in titles and tags (horror film descriptions say "gory" all the time)
+  const TITLE_ONLY = /\b(gore|gory|gorefest|real\sgore)\b/i;
+  const blockedText = t => { t = String(t || ''); return BLOCK_WORDS.test(t) || BLOCK_ANYWHERE.test(t); };
+  // Tags that only ever mean one thing on the Archive
+  const BLOCK_TAGS = /^(adult|adults|18\+|xxx|nsfw|porn|erotica|erotic|sexy|nude|nudity)$/i;
+  // The same filter applied by the Archive itself, so less junk arrives in the first place
+  const NSFW_Q = ' AND NOT (porn OR porno OR pornographic OR xxx OR nsfw OR hentai OR erotica OR erotic OR hardcore OR softcore OR sexploitation OR nudist OR orgy OR milf OR onlyfans OR "adult film" OR "adult movie" OR "adult video" OR "stag film" OR "sex tape" OR handjob OR "hand job" OR blowjob OR "blow job" OR masturbation)' +
+    ' AND NOT subject:(adult OR sex OR sexy OR nude OR nudity OR "18+")';
+  const HIDDEN_KEY = 'rewind-rentals-hidden';
+  const hiddenIds = () => { try { const v = JSON.parse(localStorage.getItem(HIDDEN_KEY)); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
+  // Everything we know about an item, as one lump of text to check: titles, tags, description, uploader, its Archive ID
+  function itemText(d) {
+    const desc = String([].concat(d.description || []).join(' ')).replace(/<[^>]+>/g, ' ').slice(0, 2500);
+    const id = String(d.identifier || d.id || '').replace(/[_\-.]+/g, ' ');
+    return [first(d.title), d.rawTitle, [].concat(d.subject || []).join(' | '), desc, [].concat(d.creator || []).join(' '), [].concat(d.uploader || []).join(' '), id].join(' \n ');
+  }
+  function isBlocked(d) {
+    if (!d) return true;
+    const id = d.identifier || d.id;
+    if (CONFIG.blockedIds.includes(id)) return true;
+    if (hiddenIds().some(x => x.identifier === id)) return true;
+    if ([].concat(d.subject || []).some(t => BLOCK_TAGS.test(String(t).trim()))) return true;
+    if (TITLE_ONLY.test([first(d.title), d.rawTitle, [].concat(d.subject || []).join(' ')].join(' '))) return true;
+    return blockedText(itemText(d));
+  }
+
   const SHELVES = [
     { id: 'feature_films',    name: 'Feature films',          tag: 'Feature', films: true, minLength: 40 * 60 },
     { id: 'Film_Noir',        name: 'Film noir',              tag: 'Noir',    films: true },
@@ -575,7 +671,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     player: $('player'), video: $('video'), noise: $('noise'), osdState: $('osdState'), osdTime: $('osdTime'),
     pError: $('pError'), bar: $('bar'), pTitle: $('pTitle'), progress: $('progress'), fill: $('fill'),
     toggleBtn: $('toggleBtn'), dur: $('dur'), ctrls: $('ctrls'), q: $('q'), eras: $('eras'), sort: $('sort'), genre: $('genre'),
-    filters: document.querySelector('.filters'), keepBtn: $('keepBtn'), staffCard: $('staffCard'), scBy: $('scBy'), scNote: $('scNote')
+    filters: document.querySelector('.filters'), keepBtn: $('keepBtn'), hideBtn: $('hideBtn'), altBtn: $('altBtn'), staffCard: $('staffCard'), scBy: $('scBy'), scNote: $('scNote')
   };
 
   const state = { shelf: 0, special: null, era: 0, genre: 0, sort: 0, query: '', items: [], page: 1, total: 0, loading: false, selected: -1, playing: null };
@@ -684,6 +780,123 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     return false;
   }
+  /* Tidy titles: "Monster Walks, The" -> "The Monster Walks", "Frankenstein 1931" -> "Frankenstein",
+     notes like "(English intertitles)" or "- Full Movie" move to a label on the box */
+  const VERSION_WORD = /^(english|french|german|italian|spanish|japanese|subtitles?|subtitled|subbed|dubbed|intertitles?|restored|restoration|remaster\w*|hd|hq|sd|\d{3,4}p|4k|dvd\w*|vhs|blu-?ray|full|length|movie|film|feature|colou?r\w*|b&w|bw|black|white|version|cut|edition|rip|copy|public|domain|pd|uncut|widescreen|fullscreen|silent|sound|original|complete|trailer|reel|reels|tinted|score|soundtrack|new|mp4|avi|ia|archive|better|quality|good|best|upload|enhanced|upscaled?|music|with|and|in|of|the|&|\+|-|\d+)$/i;
+  const isVersionish = str => {
+    const words = String(str).trim().split(/[\s,\/]+/).filter(Boolean);
+    return words.length > 0 && words.length <= 7 && words.every(w => VERSION_WORD.test(w.replace(/[^\w&+-]/g, ''))) &&
+      words.some(w => !/^(with|and|in|of|the|&|\+|-|\d+)$/i.test(w));
+  };
+  const SMALL_WORDS = new Set(['a', 'an', 'and', 'as', 'at', 'but', 'by', 'for', 'in', 'of', 'on', 'or', 'the', 'to', 'vs', 'with', 'from']);
+  function titleCase(t) {
+    return t.toLowerCase().split(' ').map((w, i) => (i > 0 && SMALL_WORDS.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+  }
+  function tidyTitle(raw, year) {
+    let t = String(raw || '').replace(/_/g, ' ').replace(/\.(mp4|avi|mkv|mov|ogv|mpe?g|m4v)$/i, '').replace(/\s+/g, ' ').trim();
+    const notes = [];
+    let foundYear = '';
+    // Bracketed extras: years and version notes
+    t = t.replace(/\s*[\(\[\{]([^\)\]\}]*)[\)\]\}]/g, (m, inner) => {
+      const i = inner.trim();
+      if (/^(18|19|20)\d{2}$/.test(i)) { foundYear = foundYear || i; return ''; }
+      if (isVersionish(i)) { notes.push(i); return ''; }
+      return m;
+    }).trim();
+    // Trailing " - Full Movie", " | HD", ": Restored"
+    for (let n = 0; n < 2; n++) {
+      const m = t.match(/^(.*\S)\s*[-–|:]\s*([^-–|:]+)$/);
+      if (m && isVersionish(m[2]) && m[1].length > 1) { notes.unshift(m[2].trim()); t = m[1].trim(); }
+    }
+    // Tech words stuck on the end with no dash: "Detour HD", "Metropolis 1080p Restored"
+    let tm;
+    while ((tm = t.match(/^(.*\S)\s+(hd|hq|sd|\d{3,4}p|4k|dvd\s?rip|vhs\s?rip|dvdrip|vhsrip|bluray|restored|remastered|colou?ri[sz]ed|upscaled)$/i)) && tm[1].length > 1) {
+      notes.unshift(tm[2]); t = tm[1].trim();
+    }
+    // Cast list tacked on: "Charade - Cary Grant, Audrey Hepburn"
+    const cm = t.match(/^(.*\S)\s+[-–|]\s+((?:[A-Z][\w'.-]+\s[A-Z][\w'.-]+)(?:,?\s(?:and\s|&\s)?[A-Z][\w'.-]+\s[A-Z][\w'.-]+)+)$/);
+    if (cm) { notes.push('With ' + cm[2]); t = cm[1].trim(); }
+    // Trailing year, if it matches the tape's year (or the tape has none)
+    const ym = t.match(/^(.*\S)[\s,\-]+((?:18|19|20)\d{2})$/);
+    if (ym && ym[1].length > 1 && (!year || Math.abs(+ym[2] - +year) <= 1)) { foundYear = foundYear || ym[2]; t = ym[1]; }
+    // "Monster Walks, The" -> "The Monster Walks"
+    const am = t.match(/^(.*\S),\s*(the|a|an)$/i);
+    if (am) t = am[2].charAt(0).toUpperCase() + am[2].slice(1).toLowerCase() + ' ' + am[1];
+    // SHOUTY or all-lowercase titles
+    const letters = t.replace(/[^a-zA-Z]/g, '');
+    if (letters.length > 3 && (letters === letters.toUpperCase() || letters === letters.toLowerCase())) t = titleCase(t);
+    t = t.replace(/[\s\-:,|]+$/, '').trim();
+    return { title: t || String(raw || '').trim(), notes, year: foundYear };
+  }
+  const titleKey = t => String(t).toLowerCase().replace(/&/g, 'and').replace(/^(the|a|an)\s+/, '').replace(/[^a-z0-9]+/g, ' ').trim();
+  function tidyDoc(d) {
+    if (!d || d._tidy) return d;
+    const raw = clean(first(d.title)) || d.identifier;
+    const r = tidyTitle(raw, yearOf(d));
+    d.rawTitle = raw;
+    d.title = r.title;
+    if (!yearOf(d) && r.year) d.year = r.year;
+    if (r.notes.length) d.versionNote = r.notes.join(', ');
+    d._key = titleKey(r.title);
+    d._tidy = true;
+    return d;
+  }
+  /* Duplicates: the same title within a year of each other is one tape. The most-watched copy
+     leads; the others are kept as backups to try if it won't play. */
+  function addOrMerge(d) {
+    const map = state.keyMap || (state.keyMap = new Map());
+    const list = map.get(d._key) || [];
+    const y = +yearOf(d) || 0;
+    const match = list.map(i => state.items[i]).find(e => { const ey = +yearOf(e) || 0; return !y || !ey || Math.abs(ey - y) <= 1; });
+    if (!match) {
+      list.push(state.items.length); map.set(d._key, list);
+      d.alts = d.alts || [];
+      state.items.push(d);
+      return true;
+    }
+    if (match.identifier === d.identifier || match.alts.includes(d.identifier)) return false;
+    if ((+d.downloads || 0) > (+match.downloads || 0)) {
+      const oldId = match.identifier;
+      ['identifier', 'downloads', 'runtime', 'versionNote', 'collection', 'subject'].forEach(k => { match[k] = d[k]; });
+      if (clean(d.description).length > clean(match.description).length) match.description = d.description;
+      match.alts.unshift(oldId);
+    } else {
+      match.alts.push(d.identifier);
+      if (!clean(match.description) && clean(d.description)) match.description = d.description;
+      if (!yearOf(match) && yearOf(d)) match.year = d.year;
+    }
+    return false;
+  }
+
+  /* Search: match every word (titles count most), allow partial words, then a typo-tolerant second try */
+  const STOP_WORDS = new Set(['the', 'a', 'an', 'of', 'and', 'in', 'on', 'to', 'at', 'for']);
+  function searchWords(query) {
+    const words = safeQuery(query).toLowerCase().replace(/[^a-z0-9\s'-]/g, ' ').split(/\s+/).filter(Boolean);
+    const useful = words.filter(w => !STOP_WORDS.has(w));
+    return useful.length ? useful : words;
+  }
+  function searchQuery(query, fuzzy) {
+    const words = searchWords(query).map(w => w.replace(/['-]/g, ''));
+    if (!words.length) return '';
+    const part = w => fuzzy && w.length > 3
+      ? '(title:' + w + '~1 OR ' + w + '~1)'
+      : '(title:' + w + '* OR title:' + w + ' OR subject:' + w + ' OR ' + w + ')';
+    return '(' + words.map(part).join(' AND ') + ')';
+  }
+  // How well a title matches what was typed, used to put the best matches first
+  function matchScore(d, query) {
+    const t = clean(first(d.title)).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const q = String(query).toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim();
+    const words = searchWords(query);
+    let score = 0;
+    if (t === q) score += 100;
+    else if (t.startsWith(q)) score += 60;
+    else if (t.includes(q)) score += 40;
+    let hits = 0;
+    words.forEach(w => { if (new RegExp('\\b' + w.replace(/[^a-z0-9]/g, '')).test(t)) { score += 10; hits++; } });
+    if (words.length && hits === words.length) score += 15;
+    return score;
+  }
   const safeQuery = q => q.replace(/[():"\\\[\]{}^~*?!:\/]/g, ' ').trim();
   const setStatus = (msg, isErr) => { els.status.textContent = msg; els.status.classList.toggle('err', !!isErr); };
 
@@ -763,7 +976,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     state.loading = true;
     els.filters.hidden = !!state.special;
     if (reset) {
-      state.items = []; state.page = 1; state.total = 0; state.selected = -1;
+      state.items = []; state.page = 1; state.total = 0; state.selected = -1; state.keyMap = new Map();
       renderList(); renderDetail();
       els.spines.innerHTML = '<div class="skel"></div>'.repeat(8);
       setStatus('Pulling tapes off the shelf…');
@@ -775,19 +988,27 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     els.shelfName.textContent = [base, genre.q ? genre.name : '', era.from ? era.name : ''].filter(Boolean).join(', ');
 
     const cols = state.query ? SHELVES.map(s => s.id).join(' OR ') : SHELVES[state.shelf].id;
-    let q = 'collection:(' + cols + ') AND mediatype:(movies)';
+    let q = 'collection:(' + cols + ') AND mediatype:(movies)' + NSFW_Q;
     if (era.from) q += ' AND year:[' + era.from + ' TO ' + era.to + ']';
     if (genre.q) q += ' AND ' + genre.q;
     const shelf = state.query ? null : SHELVES[state.shelf];
     const filmsOnly = !!(shelf && shelf.films);
     if (filmsOnly) q += FILM_ONLY_Q;
-    if (state.query) q = '(' + safeQuery(state.query) + ') AND ' + q;
+    const baseQ = q;
+    let fuzzyUsed = false;
+    if (state.query) {
+      if (reset) state.fuzzy = false;
+      q = (searchQuery(state.query, state.fuzzy) || safeQuery(state.query)) + ' AND ' + baseQ;
+    }
     if (reset) state.dropped = 0;
     const pageUrl = () => {
-      const p = new URLSearchParams({ q, rows: ROWS, page: state.page, output: 'json' });
-      ['identifier', 'title', 'year', 'date', 'description', 'runtime', 'collection', 'subject'].forEach(f => p.append('fl[]', f));
-      p.append('sort[]', SORTS[state.sort].sort);
-      if (SORTS[state.sort].id !== 'popular') p.append('sort[]', 'downloads desc');
+      const p = new URLSearchParams({ q, rows: state.query ? 100 : ROWS, page: state.page, output: 'json' });
+      ['identifier', 'title', 'year', 'date', 'description', 'runtime', 'collection', 'subject', 'downloads', 'creator', 'uploader'].forEach(f => p.append('fl[]', f));
+      // Searching with the default sort means "best match first", which is the Archive's own relevance order
+      if (!(state.query && SORTS[state.sort].id === 'popular')) {
+        p.append('sort[]', SORTS[state.sort].sort);
+        if (SORTS[state.sort].id !== 'popular') p.append('sort[]', 'downloads desc');
+      }
       return 'https://archive.org/advancedsearch.php?' + p.toString();
     };
 
@@ -802,20 +1023,34 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
         if (token !== loadToken) return;
         found = j.response.numFound || 0;
         const seen = new Set(state.items.map(i => i.identifier));
-        const docs = j.response.docs;
+        let docs = j.response.docs;
+        docs.forEach(tidyDoc);
+        // Best matches first: re-rank this page by how closely the title matches the search
+        if (state.query && SORTS[state.sort].id === 'popular') {
+          docs = docs.map((d, i) => ({ d, i, s: matchScore(d, state.query) }))
+            .sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.d);
+        }
         docs.forEach(d => {
           if (seen.has(d.identifier)) return;
+          if (isBlocked(d)) { state.dropped++; return; }
           if (filmsOnly && looksLikeTv(d, shelf)) { state.dropped++; return; }
-          state.items.push(d);
+          if (!addOrMerge(d)) state.dropped++;
         });
         state.page++;
+        // Barely anything found? Try once more, forgiving typos
+        if (state.query && reset && !state.fuzzy && state.items.length < 5) {
+          state.fuzzy = true; fuzzyUsed = true; state.page = 1;
+          q = searchQuery(state.query, true) + ' AND ' + baseQ;
+          continue;
+        }
         if (!filmsOnly || state.items.length >= target || docs.length < ROWS) break;
       }
       state.total = Math.max(state.items.length, found - (state.dropped || 0));
       setStatus(state.items.length ? '' :
         (era.from || genre.q) ? 'No tapes on this shelf match those filters. Try another genre or era.' :
-        state.query ? 'No tapes match that search. Try a shorter title or another word.' :
+        state.query ? 'No tapes match “' + state.query + '”. Try fewer words, or check the spelling.' :
         'This shelf is empty right now. Pick another shelf.');
+      if (state.items.length && fuzzyUsed) setStatus('No exact matches for “' + state.query + '”, so here are the closest ones.');
     } catch (e) {
       if (token !== loadToken) return;
       setStatus('The shelf didn’t load. Check your internet connection, then choose the shelf again.', true);
@@ -830,7 +1065,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   const getList = k => { const v = store.get(k); return Array.isArray(v) ? v : []; };
   const compact = d => ({
     identifier: d.identifier, title: clean(first(d.title)) || d.identifier, year: yearOf(d),
-    runtime: clean(first(d.runtime)), collection: [].concat(d.collection || []), description: clean(d.description).slice(0, 700)
+    runtime: clean(first(d.runtime)), collection: [].concat(d.collection || []), description: clean(d.description).slice(0, 700),
+    alts: (d.alts || []).slice(0, 6), versionNote: d.versionNote || ''
   });
   const isKept = id => getList(KEPT).some(x => x.identifier === id);
   function toggleKept(d) {
@@ -852,9 +1088,18 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const saved = kept.filter(x => !shown.has(x.identifier)).map(x => Object.assign({}, x, { section: 'Saved tapes' }));
     saved.forEach(x => shown.add(x.identifier));
     const recent = hist.filter(x => !shown.has(x.identifier)).slice(0, 24).map(x => Object.assign({}, x, { section: 'Recently watched' }));
-    return paused.concat(saved, recent);
+    const hiddenSet = new Set(getList(HIDDEN_KEY).map(x => x.identifier));
+    const visible = paused.concat(saved, recent).filter(x => !hiddenSet.has(x.identifier));
+    const hidden = state.showHidden ? getList(HIDDEN_KEY).map(x => Object.assign({}, x, { section: 'Hidden tapes', isHidden: true })) : [];
+    return visible.concat(hidden);
   }
   const inMine = id => isKept(id) || getList(HIST).some(x => x.identifier === id);
+  function hideTape(d) {
+    const list = getList(HIDDEN_KEY).filter(x => x.identifier !== d.identifier);
+    list.unshift(compact(d));
+    store.set(HIDDEN_KEY, list.slice(0, 500));
+  }
+  function unhideTape(id) { store.set(HIDDEN_KEY, getList(HIDDEN_KEY).filter(x => x.identifier !== id)); }
   function removeFromMine(id) {
     store.set(KEPT, getList(KEPT).filter(x => x.identifier !== id));
     store.set(HIST, getList(HIST).filter(x => x.identifier !== id));
@@ -881,15 +1126,16 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (picksPromise) return picksPromise;
     const cols = SHELVES.map(sh => sh.id).join(' OR ');
     picksPromise = Promise.all(STAFF_PICKS.map(pick => {
-      const q = pick.id ? 'identifier:(' + pick.id + ')' : (pick.q || 'title:("' + pick.title + '")') + ' AND mediatype:(movies) AND collection:(' + cols + ')';
+      const q = pick.id ? 'identifier:(' + pick.id + ')' : (pick.q || 'title:("' + pick.title + '")') + ' AND mediatype:(movies) AND collection:(' + cols + ')' + NSFW_Q;
       const p = new URLSearchParams({ q, rows: 1, page: 1, output: 'json' });
       ['identifier', 'title', 'year', 'date', 'description', 'runtime', 'collection'].forEach(f => p.append('fl[]', f));
       p.append('sort[]', 'downloads desc');
       return fetch('https://archive.org/advancedsearch.php?' + p.toString())
         .then(r => r.ok ? r.json() : null)
-        .then(j => { const d = j && j.response && j.response.docs[0]; return d ? Object.assign(d, { pick }) : null; })
+        .then(j => { const d = j && j.response && j.response.docs[0]; return d ? Object.assign(tidyDoc(d), { pick, alts: [] }) : null; })
         .catch(() => null);
-    })).then(list => { const out = list.filter(Boolean); if (!out.length) picksPromise = null; return out; });
+    })).then(list => { const out = list.filter(Boolean); if (!out.length) picksPromise = null; return out; })
+      .then(list => list.filter(d => !isBlocked(d)));
     return picksPromise;
   }
 
@@ -961,6 +1207,23 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       more.addEventListener('click', () => loadShelf(false));
       els.spines.appendChild(more);
     }
+    const hiddenCount = getList(HIDDEN_KEY).length;
+    if (state.special === 'mine' && hiddenCount) {
+      const t = document.createElement('button');
+      t.type = 'button'; t.className = 'more';
+      t.textContent = state.showHidden ? 'Put the hidden tapes away' : 'Show hidden tapes (' + hiddenCount + ')';
+      t.addEventListener('click', () => {
+        state.showHidden = !state.showHidden;
+        state.items = buildMine(); state.total = state.items.length;
+        els.spines._count = state.items.length;
+        renderList();
+        const firstHidden = state.items.findIndex(x => x.isHidden);
+        if (state.showHidden && firstHidden >= 0) select(firstHidden, true);
+        else if (state.items.length) select(Math.min(Math.max(state.selected, 0), state.items.length - 1), true);
+        else { state.selected = -1; renderDetail(); const b = els.spines.querySelector('.more'); b && b.focus(); }
+      });
+      els.spines.appendChild(t);
+    }
   }
 
   function select(i, focus, fromClick) {
@@ -989,15 +1252,19 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     els.dTitle.textContent = clean(first(d.title)) || d.identifier;
 
     els.pills.innerHTML = '';
-    const pills = [yearOf(d), clean(first(d.runtime)), shelfFor(d).name].filter(Boolean);
+    const copies = (d.alts || []).length + 1;
+    const pills = [yearOf(d), clean(first(d.runtime)), shelfFor(d).name, d.versionNote || '', copies > 1 ? copies + ' copies on the Archive' : ''].filter(Boolean);
     pills.forEach(p => { const s = document.createElement('span'); s.className = 'pill'; s.textContent = p; els.pills.appendChild(s); });
 
     els.desc.textContent = clean(d.description) || 'No description on the box for this one.';
     els.staffCard.hidden = !d.pick;
     if (d.pick) { els.scBy.textContent = d.pick.by + ' at the counter says:'; els.scNote.textContent = d.pick.note; }
     const mine = inMine(d.identifier);
-    els.keepBtn.textContent = mine ? 'Remove from My tapes' : 'Add to My tapes';
-    els.keepBtn.setAttribute('aria-pressed', String(mine));
+    els.keepBtn.textContent = d.isHidden ? 'Unhide this tape' : mine ? 'Remove from My tapes' : 'Add to My tapes';
+    els.keepBtn.setAttribute('aria-pressed', String(!d.isHidden && mine));
+    els.hideBtn.hidden = !!d.isHidden;
+    els.altBtn.hidden = !(d.alts && d.alts.length);
+    if (d.alts && d.alts.length) els.altBtn.textContent = 'Try another copy (' + (d.alts.length + 1) + ' in total)';
     els.iaLink.href = 'https://archive.org/details/' + encodeURIComponent(d.identifier);
 
     const saved = store.get(posKey(d.identifier));
@@ -1060,7 +1327,10 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
     const wait = new Promise(r => setTimeout(r, reduceMotion ? 400 : 2600));
     let src = null;
-    try { src = await findVideo(d.identifier); } catch (e) { src = null; }
+    for (const id of [d.identifier].concat(d.alts || [])) {
+      try { src = await findVideo(id); } catch (e) { src = null; }
+      if (src) break;
+    }
     await wait;
     clearInterval(rwTimer);
     els.rewind.hidden = true;
@@ -1186,6 +1456,12 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const d = state.items[state.selected];
     if (!d) return;
     sfx.select();
+    if (d.isHidden) {
+      unhideTape(d.identifier);
+      stamp('Back on the shelf', true);
+      rebuildMine(state.selected);
+      return;
+    }
     if (!inMine(d.identifier)) { toggleKept(d); renderDetail(); stamp('Added!', true); return; }
     const title = clean(first(d.title)) || d.identifier;
     removeFromMine(d.identifier);
@@ -1209,6 +1485,85 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
   });
   els.restartBtn.addEventListener('click', () => insertTape(true));
+
+  // Swap to the next copy of this film, for when one looks rough
+  els.altBtn.addEventListener('click', () => {
+    const d = state.items[state.selected];
+    if (!d || !d.alts || !d.alts.length) return;
+    sfx.select();
+    d.alts.push(d.identifier);
+    d.identifier = d.alts.shift();
+    d.versionNote = '';
+    els.card._id = null;
+    renderDetail();
+    stamp('Copy swapped', true);
+    els.altBtn.focus();
+  });
+
+  function rebuildMine(at) {
+    state.items = buildMine(); state.total = state.items.length;
+    els.spines._count = state.items.length;
+    renderList();
+    if (state.items.length) select(Math.min(at, state.items.length - 1), true);
+    else { state.selected = -1; renderDetail(); const t = els.tabs.querySelector('[aria-pressed="true"]'); t && t.focus(); }
+  }
+  els.hideBtn.addEventListener('click', () => {
+    const d = state.items[state.selected];
+    if (!d) return;
+    sfx.clunk();
+    hideTape(d);
+    const at = state.selected;
+    setStatus('Hidden “' + (clean(first(d.title)) || d.identifier) + '”. Find it again under My tapes if you change your mind.');
+    if (state.special === 'mine') { rebuildMine(at); return; }
+    // Take it off this shelf straight away
+    state.items.splice(at, 1);
+    state.total = Math.max(0, state.total - 1);
+    els.spines._count = state.items.length;
+    renderList();
+    if (state.items.length) select(Math.min(at, state.items.length - 1), true);
+    else { state.selected = -1; renderDetail(); }
+  });
+
+  // Tip jar: a QR code on the TV, a button on computers
+  const tipEl = $('tipjar'), tipBtn = $('tipBtn');
+  const inApp = /RewindRentalsApp/.test(navigator.userAgent);
+  let tipReturn = null, qrLib = null;
+  function loadQrLib() {
+    if (qrLib) return qrLib;
+    qrLib = new Promise((res, rej) => {
+      const sc = document.createElement('script');
+      sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js';
+      sc.onload = () => window.qrcode ? res(window.qrcode) : rej();
+      sc.onerror = () => { qrLib = null; rej(); };
+      document.head.appendChild(sc);
+    });
+    return qrLib;
+  }
+  function openTip() {
+    const url = CONFIG.supportUrl;
+    if (!url) return;
+    tipReturn = document.activeElement;
+    tipEl.hidden = false;
+    $('tipUrl').textContent = url.replace(/^https?:\/\//, '');
+    $('tipOpen').href = url;
+    $('tipOpen').hidden = inApp;
+    $('tipQr').innerHTML = '';
+    $('tipHint').textContent = 'Point your phone camera at the code';
+    loadQrLib().then(qrcode => {
+      const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+      $('tipQr').innerHTML = qr.createSvgTag(6, 0);
+    }).catch(() => { $('tipHint').textContent = 'Visit this address on your phone'; });
+    sfx.jingle();
+    (inApp ? $('tipClose') : $('tipOpen')).focus();
+  }
+  function closeTip() {
+    tipEl.hidden = true;
+    if (tipReturn && document.contains(tipReturn)) tipReturn.focus();
+  }
+  if (!CONFIG.supportUrl) tipBtn.hidden = true;
+  tipBtn.addEventListener('click', openTip);
+  $('tipClose').addEventListener('click', closeTip);
+  tipEl.addEventListener('click', e => { if (e.target === tipEl) closeTip(); });
   function stamp(text, good) {
     const actions = $('actions');
     const el = document.createElement('span');
@@ -1239,6 +1594,18 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const active = document.activeElement;
 
     if (!bootEl.hidden) { e.preventDefault(); sfx.power(); hideBoot(); return; }
+
+    if (!tipEl.hidden) {
+      if (['Escape', 'Backspace', 'BrowserBack', 'GoBack'].includes(k)) { e.preventDefault(); closeTip(); return; }
+      if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) {
+        e.preventDefault();
+        const btns = [...tipEl.querySelectorAll('.tip-actions > :not([hidden])')];
+        const i = btns.indexOf(active);
+        const n = btns[(i + (k === 'ArrowLeft' || k === 'ArrowUp' ? -1 : 1) + btns.length) % btns.length];
+        n && n.focus();
+      }
+      return;
+    }
 
     if (!tvEls.tv.hidden) {
       wakeTv();
@@ -1361,7 +1728,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { num: 15, id: 'tv80s',     name: '80s Prime Time',      kind: 'episodes', source: 'classic_tv_1980s' },
     { num: 16, id: 'monsterjam', name: 'Monster Jam',        kind: 'episodes', source: 'classicmonsterjam' },
     { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'] }
-  ];
+  ].filter(c => CONFIG.edition === 'home' || c.num <= 10);
   const CH_COLOURS = ['#ff3d8b', '#38e1e8', '#ffb627', '#f2ead3', '#a98bff', '#7ee08a', '#ff8a3d', '#ffd23f', '#5ab0ff'];
   const LOOP_S = 72 * 3600, LOOP_MS = LOOP_S * 1000;
   const EPOCH = Date.UTC(2026, 0, 1);
@@ -1414,14 +1781,14 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   }
 
   async function fetchPool(q, kind, keepDoc) {
-    const p = new URLSearchParams({ q: q + ' AND mediatype:(movies)', rows: 400, page: 1, output: 'json' });
-    ['identifier', 'title', 'runtime', 'year', 'date'].concat(keepDoc ? ['description', 'collection', 'subject'] : []).forEach(f => p.append('fl[]', f));
+    const p = new URLSearchParams({ q: q + ' AND mediatype:(movies)' + NSFW_Q, rows: 400, page: 1, output: 'json' });
+    ['identifier', 'title', 'runtime', 'year', 'date', 'description', 'collection', 'subject', 'creator', 'uploader'].forEach(f => p.append('fl[]', f));
     p.append('sort[]', 'identifier asc');
     const r = await fetch('https://archive.org/advancedsearch.php?' + p.toString());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
-    return j.response.docs.map(d => Object.assign({
-      id: d.identifier, title: clean(first(d.title)) || d.identifier, year: yearOf(d), dur: parseRuntime(first(d.runtime), kind)
+    return j.response.docs.filter(d => !isBlocked(d)).map(d => Object.assign({
+      id: d.identifier, title: tidyTitle(clean(first(d.title)) || d.identifier, yearOf(d)).title, year: yearOf(d), dur: parseRuntime(first(d.runtime), kind)
     }, keepDoc ? { doc: d } : {}));
   }
 
@@ -1433,7 +1800,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     if (ch.q) return fetchPool(ch.q, ch.kind);
     if (ch.search) {
-      const p = new URLSearchParams({ q: 'title:(' + ch.search + ') OR subject:(' + ch.search + ')', rows: 40, page: 1, output: 'json' });
+      const p = new URLSearchParams({ q: '(title:(' + ch.search + ') OR subject:(' + ch.search + '))' + NSFW_Q, rows: 40, page: 1, output: 'json' });
       p.append('fl[]', 'identifier'); p.append('sort[]', 'identifier asc');
       let found = [];
       try {
@@ -1444,7 +1811,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       const lists = await Promise.all(ids.map(id =>
         fetch('https://archive.org/metadata/' + encodeURIComponent(id))
           .then(r => r.ok ? r.json() : null)
-          .then(j => j ? episodesFromItem(id, j, ch.kind) : [])
+          .then(j => (j && !isBlocked(Object.assign({ identifier: id }, j.metadata || {}))) ? episodesFromItem(id, j, ch.kind) : [])
           .catch(() => [])));
       return [].concat(...lists);
     }
@@ -1453,6 +1820,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const j = await r.json();
     const md = j.metadata || {};
     if (md.mediatype === 'collection') return fetchPool('collection:(' + ch.source + ')', ch.kind);
+    if (isBlocked(Object.assign({ identifier: ch.source }, md))) return [];
     return episodesFromItem(ch.source, j, ch.kind);
   }
   function episodesFromItem(id, j, kind) {
@@ -1494,7 +1862,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (!adPoolPromise) {
       const ch = CHANNELS.find(c => c.id === 'adbreak');
       adPoolPromise = fetchPool(ch.q, 'shorts')
-        .then(all => all.filter(x => x.dur >= 10 && x.dur <= 240))
+        .then(all => all.filter(x => x.dur >= 10 && x.dur <= 240 && !blockedText(x.title) && !CONFIG.blockedIds.includes(x.id)))
         .catch(() => { adPoolPromise = null; return []; });
     }
     return adPoolPromise;
@@ -1504,10 +1872,15 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const ch = CHANNELS[ci];
     const withBreaks = ch.id !== 'adbreak';
     const [all, ads] = await Promise.all([fetchSource(ch), withBreaks ? getAdPool() : Promise.resolve([])]);
-    let pool = all.filter(x => x.dur >= 60 && x.dur <= 4 * 3600);
+    const allSafe = all.filter(x => !blockedText(x.title + ' ' + String(x.file || '')) && !CONFIG.blockedIds.includes(x.item || x.id));
+    let pool = allSafe.filter(x => x.dur >= 60 && x.dur <= 4 * 3600);
+    if (ch.kind !== 'episodes') {
+      const seenKeys = new Set();
+      pool = pool.filter(x => { const k = titleKey(x.title) + '|' + Math.round((+x.year || 0) / 2); if (seenKeys.has(k)) return false; seenKeys.add(k); return true; });
+    }
     if (pool.length < 15) {
       const guess = ch.kind === 'movies' ? 75 * 60 : ch.kind === 'episodes' ? 25 * 60 : 8 * 60;
-      pool = pool.concat(all.filter(x => !x.dur).map(x => Object.assign({}, x, { dur: guess })));
+      pool = pool.concat(allSafe.filter(x => !x.dur).map(x => Object.assign({}, x, { dur: guess })));
     }
     const slots = [];
     if (!pool.length) return { slots };
@@ -1847,6 +2220,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
      Returns true if the page handled it (closed the TV, player or boot screen), false to exit the app. */
   window.rrBack = () => {
     if (!bootEl.hidden) { hideBoot(); return true; }
+    if (!tipEl.hidden) { closeTip(); return true; }
     if (!tvEls.tv.hidden) { closeTv(); return true; }
     if (!els.player.hidden) { stopPlayer(); return true; }
     if (!els.rewind.hidden) return true;
