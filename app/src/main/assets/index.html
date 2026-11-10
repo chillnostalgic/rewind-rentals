@@ -589,8 +589,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   // Tags that only ever mean one thing on the Archive
   const BLOCK_TAGS = /^(adult|adults|18\+|xxx|nsfw|porn|erotica|erotic|sexy|nude|nudity)$/i;
   // The same filter applied by the Archive itself, so less junk arrives in the first place
-  const NSFW_Q = ' AND NOT (porn OR porno OR pornographic OR xxx OR nsfw OR hentai OR erotica OR erotic OR hardcore OR softcore OR sexploitation OR nudist OR orgy OR milf OR onlyfans OR "adult film" OR "adult movie" OR "adult video" OR "stag film" OR "sex tape" OR handjob OR "hand job" OR blowjob OR "blow job" OR masturbation)' +
+  const NSFW_Q_BASE = ' AND NOT (porn OR porno OR pornographic OR xxx OR nsfw OR hentai OR erotica OR erotic OR hardcore OR softcore OR sexploitation OR nudist OR orgy OR milf OR onlyfans OR "adult film" OR "adult movie" OR "adult video" OR "stag film" OR "sex tape" OR handjob OR "hand job" OR blowjob OR "blow job" OR masturbation)' +
     ' AND NOT subject:(adult OR sex OR sexy OR nude OR nudity OR "18+")';
+  const NSFW_Q = NSFW_Q_BASE + ' AND NOT collection:(tvarchive OR tvnews)';
   const HIDDEN_KEY = 'rewind-rentals-hidden';
   const hiddenIds = () => { try { const v = JSON.parse(localStorage.getItem(HIDDEN_KEY)); return Array.isArray(v) ? v : []; } catch (e) { return []; } };
   // Everything we know about an item, as one lump of text to check: titles, tags, description, uploader, its Archive ID
@@ -599,10 +600,18 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const id = String(d.identifier || d.id || '').replace(/[_\-.]+/g, ' ');
     return [first(d.title), d.rawTitle, [].concat(d.subject || []).join(' | '), desc, [].concat(d.creator || []).join(' '), [].concat(d.uploader || []).join(' '), id].join(' \n ');
   }
+  /* The Archive's TV News recordings (e.g. "Fox 45 Morning News : WBFF : March 22, 2010") only play on the Archive's own site */
+  const TV_NEWS_ID = /^[A-Z0-9]{3,}_\d{8}_\d{4,6}_/;
+  const NO_TV_NEWS_Q = ' AND NOT collection:(tvarchive OR tvnews OR "TV-NEWS")';
+  function isTvNews(d) {
+    if (TV_NEWS_ID.test(String(d.identifier || d.id || ''))) return true;
+    return [].concat(d.collection || []).some(c => /^tv-|^tvarchive$|^tvnews/i.test(String(c)));
+  }
   function isBlocked(d) {
     if (!d) return true;
     const id = d.identifier || d.id;
     if (CONFIG.blockedIds.includes(id)) return true;
+    if (isTvNews(d)) return true;
     if (hiddenIds().some(x => x.identifier === id)) return true;
     if ([].concat(d.subject || []).some(t => BLOCK_TAGS.test(String(t).trim()))) return true;
     if (TITLE_ONLY.test([first(d.title), d.rawTitle, [].concat(d.subject || []).join(' ')].join(' '))) return true;
@@ -615,6 +624,15 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   const DISNEY_TERMS = ['Walt Disney Cartoon', 'Walt Disney Presents', 'Silly Symphony', 'Silly Symphonies', 'Mickey Mouse', 'Donald Duck',
     'DuckTales', 'Duck Tales', 'Chip n Dale Rescue Rangers', 'Rescue Rangers', 'TaleSpin', 'Darkwing Duck', 'Gummi Bears', 'Goof Troop',
     'Gargoyles 1994', 'Quack Pack', 'Timon and Pumbaa', 'House of Mouse', 'Disney Afternoon', 'Mickey Mouse Club', 'Wonderful World of Disney'];
+  // The film versions, for the Rent tapes shelves (the TV shows above go to the TV channels)
+  const HENSON_FILMS = ['Muppet Movie', 'Great Muppet Caper', 'Muppets Take Manhattan', 'Muppet Christmas Carol', 'Muppet Treasure Island',
+    'Muppets from Space', 'Muppet Family Christmas', 'Dark Crystal', 'Labyrinth 1986', 'Emmet Otter', 'Jim Henson', 'Time Piece Henson'];
+  const DISNEY_FILMS = ['Walt Disney Cartoon', 'Silly Symphony', 'Silly Symphonies', 'Steamboat Willie', 'Plane Crazy', 'Skeleton Dance',
+    'Oswald the Lucky Rabbit', 'Alice Comedies', 'Laugh-O-Grams', 'Mickey Mouse cartoon', 'Donald Duck cartoon', 'Walt Disney Productions',
+    'Snow White and the Seven Dwarfs', 'Fantasia 1940', 'Dumbo', 'Bambi', 'Saludos Amigos', 'The Three Caballeros', 'Song of the South',
+    'Cinderella 1950', 'Alice in Wonderland 1951', 'Peter Pan 1953', 'Lady and the Tramp', 'Sleeping Beauty 1959', 'One Hundred and One Dalmatians',
+    'The Sword in the Stone', 'The Jungle Book 1967', 'The Aristocats', 'Robin Hood 1973', 'The Rescuers', 'The Fox and the Hound',
+    'The Black Cauldron', 'The Great Mouse Detective', 'Oliver and Company', 'The Little Mermaid 1989', 'DuckTales the Movie', 'A Goofy Movie'];
   // Keep out holiday vlogs, reviews, reactions and podcasts that mention the shows
   const NOT_THE_SHOW = ' AND NOT (vlog OR vlogs OR disneyland OR "disney world" OR "theme park" OR trip OR haul OR review OR reaction OR podcast OR unboxing OR "let\'s play" OR gameplay OR walkthrough)';
   const termsQ = terms => '((' + terms.map(t => 'title:("' + t + '") OR subject:("' + t + '")').join(' OR ') + ')' + NOT_THE_SHOW + ')';
@@ -624,11 +642,11 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { id: 'Film_Noir',        name: 'Film noir',              tag: 'Noir',    films: true },
     { id: 'SciFi_Horror',     name: 'Sci-fi and horror',      tag: 'Sci-fi',  films: true },
     { id: 'Comedy_Films',     name: 'Comedy',                 tag: 'Comedy',  films: true },
-    { id: 'classic_cartoons', name: 'Cartoons',               tag: 'Toons' },
+    { id: 'classic_cartoons', name: 'Cartoons',               tag: 'Toons',   films: true },
     { id: 'silent_films',     name: 'Silent era',             tag: 'Silent',  films: true },
-    { id: 'prelinger',        name: 'Old adverts and oddities', tag: 'Prelinger' },
-    { id: 'henson',           name: 'Muppets and Henson',     tag: 'Henson', homeOnly: true, q: termsQ(HENSON_TERMS) },
-    { id: 'disney',           name: 'Classic Disney',         tag: 'Disney', homeOnly: true, q: termsQ(DISNEY_TERMS) }
+    { id: 'prelinger',        name: 'Old adverts and oddities', tag: 'Prelinger', films: true },
+    { id: 'henson',           name: 'Muppets and Henson',     tag: 'Henson', homeOnly: true, films: true, q: termsQ(HENSON_FILMS) },
+    { id: 'disney',           name: 'Classic Disney',         tag: 'Disney', homeOnly: true, films: true, q: termsQ(DISNEY_FILMS) }
   ].filter(sh => CONFIG.edition === 'home' || !sh.homeOnly);
   // Shelves that are real Archive collections (search and staff picks look across these)
   const COLLECTION_SHELVES = SHELVES.filter(sh => !sh.q);
@@ -1006,7 +1024,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (era.from) q += ' AND year:[' + era.from + ' TO ' + era.to + ']';
     if (genre.q) q += ' AND ' + genre.q;
     const shelf = state.query ? null : SHELVES[state.shelf];
-    const filmsOnly = !!(shelf && shelf.films);
+    // Rent tapes is films only: every shelf, and search too (TV shows belong on the TV channels)
+    const filmsOnly = shelf ? !!shelf.films : true;
     if (filmsOnly) q += FILM_ONLY_Q;
     const baseQ = q;
     let fuzzyUsed = false;
@@ -1340,9 +1359,11 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }, 50);
 
     const wait = new Promise(r => setTimeout(r, reduceMotion ? 400 : 2600));
-    let src = null;
-    for (const id of [d.identifier].concat(d.alts || [])) {
-      try { src = await findVideo(id); } catch (e) { src = null; }
+    let src = null, netTrouble = false;
+    const copies = [d.identifier].concat(d.alts || []);
+    let used = 0;
+    for (; used < copies.length; used++) {
+      try { src = await findVideo(copies[used]); } catch (e) { src = null; netTrouble = true; }
       if (src) break;
     }
     await wait;
@@ -1350,11 +1371,33 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     els.rewind.hidden = true;
 
     if (!src) {
-      els.dMsg.textContent = 'This tape has no playable video file, or the Internet Archive didn’t answer. Pick another tape.';
-      els.playBtn.focus();
+      if (netTrouble) {
+        els.dMsg.textContent = 'The Internet Archive didn’t answer. Check your connection, then try the tape again.';
+        els.playBtn.focus();
+        return;
+      }
+      chewedUp(d);
       return;
     }
+    state.spareCopies = copies.slice(used + 1);
     openPlayer(d, src, startAt);
+  }
+
+  /* A tape none of whose copies will play: off the shelf it goes (it can be found again under My tapes, Hidden tapes) */
+  function chewedUp(d) {
+    hideTape(d);
+    const at = state.items.indexOf(d);
+    if (at >= 0 && state.special !== 'mine') {
+      state.items.splice(at, 1);
+      state.total = Math.max(0, state.total - 1);
+      els.spines._count = state.items.length;
+      renderList();
+      if (state.items.length) select(Math.min(at, state.items.length - 1), true);
+      else { state.selected = -1; renderDetail(); }
+    } else if (state.special === 'mine') {
+      rebuildMine(Math.max(0, at));
+    }
+    setStatus('“' + (clean(first(d.title)) || d.identifier) + '” is chewed up: none of its copies would play, so it’s come off the shelf.', true);
   }
 
   // Player
@@ -1409,7 +1452,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     els.player.hidden = true;
     crtOff();
     document.body.style.overflow = '';
+    const finished = state.playing;
     state.playing = null;
+    if (finished && finished._chewed) { chewedUp(finished); els.playBtn.focus(); return; }
     renderDetail();
     els.playBtn.focus();
   }
@@ -1434,11 +1479,22 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     savePos(false);
   });
   els.video.addEventListener('ended', () => { store.del(posKey(state.playing && state.playing.identifier)); osd('Stop ■'); els.player.classList.remove('idle'); });
-  els.video.addEventListener('error', () => {
-    if (els.player.hidden) return;
-    els.pError.textContent = 'This tape won’t play in this browser. Press Stop to go back to the shelf.';
+  els.video.addEventListener('error', async () => {
+    if (els.player.hidden || !state.playing || !els.video.getAttribute('src')) return;
+    const d = state.playing;
+    // Quietly try the next copy of this film
+    while (state.spareCopies && state.spareCopies.length) {
+      const id = state.spareCopies.shift();
+      osd('Tracking…');
+      let src = null;
+      try { src = await findVideo(id); } catch (e) { src = null; }
+      if (state.playing !== d) return;
+      if (src) { els.video.src = src; els.video.play().catch(() => {}); tracking(); return; }
+    }
+    els.pError.textContent = 'This tape is chewed up and won’t play, so it’s come off the shelf. Press Stop to go back.';
     els.pError.hidden = false;
     osd('Stop ■');
+    d._chewed = true;
   });
 
   els.progress.addEventListener('click', e => {
@@ -1742,8 +1798,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { num: 15, id: 'tv80s',     name: '80s Prime Time',      kind: 'episodes', source: 'classic_tv_1980s' },
     { num: 16, id: 'monsterjam', name: 'Monster Jam',        kind: 'episodes', source: 'classicmonsterjam' },
     { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'] },
-    { num: 18, id: 'henson',    name: 'The Henson Hour',     kind: 'episodes', searchQ: termsQ(HENSON_TERMS), maxItems: 60 },
-    { num: 19, id: 'disney',    name: 'Disney Afternoon',    kind: 'episodes', searchQ: termsQ(DISNEY_TERMS), maxItems: 60 }
+    { num: 18, id: 'henson',    name: 'The Henson Hour',     kind: 'episodes', searchQ: termsQ(HENSON_TERMS), terms: HENSON_TERMS, maxItems: 60 },
+    { num: 19, id: 'disney',    name: 'Disney Afternoon',    kind: 'episodes', searchQ: termsQ(DISNEY_TERMS), terms: DISNEY_TERMS, maxItems: 60 }
   ].filter(c => CONFIG.edition === 'home' || c.num <= 10);
   const CH_COLOURS = ['#ff3d8b', '#38e1e8', '#ffb627', '#f2ead3', '#a98bff', '#7ee08a', '#ff8a3d', '#ffd23f', '#5ab0ff'];
   const LOOP_S = 72 * 3600, LOOP_MS = LOOP_S * 1000;
@@ -1808,6 +1864,30 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }, keepDoc ? { doc: d } : {}));
   }
 
+  // Ask the Archive, and if it's busy (it throttles bursts of requests), wait a moment and ask again
+  async function fetchJson(url, tries = 3) {
+    for (let i = 0; i < tries; i++) {
+      try {
+        const r = await fetch(url);
+        if (r.ok) return await r.json();
+        if (r.status !== 429 && r.status < 500) throw new Error('HTTP ' + r.status);
+      } catch (e) {
+        if (i === tries - 1) throw e;
+      }
+      await new Promise(res => setTimeout(res, 700 * (i + 1) + Math.random() * 400));
+    }
+    throw new Error('No answer');
+  }
+  // Run a job over a list with only a few going at once
+  async function mapLimit(list, limit, job) {
+    const out = new Array(list.length);
+    let next = 0;
+    const worker = async () => { while (next < list.length) { const i = next++; out[i] = await job(list[i], i); } };
+    await Promise.all(Array.from({ length: Math.min(limit, list.length) }, worker));
+    return out;
+  }
+  const NOT_A_SHOW = /\b(vlog|vlogs|review|reviews|reaction|podcast|unboxing|let'?s play|gameplay|walkthrough|haul|trip report|theme park|disneyland|disney world)\b/i;
+
   // A channel source can be an Archive collection (many items) or one item holding many episodes
   async function fetchSource(ch) {
     if (ch.q && ch.films) {
@@ -1816,20 +1896,35 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     if (ch.q) return fetchPool(ch.q, ch.kind);
     if (ch.search || ch.searchQ) {
-      const p = new URLSearchParams({ q: (ch.searchQ || '(title:(' + ch.search + ') OR subject:(' + ch.search + '))') + ' AND mediatype:(movies)' + NSFW_Q, rows: ch.maxItems || 40, page: 1, output: 'json' });
-      p.append('fl[]', 'identifier'); p.append('sort[]', 'identifier asc');
-      let found = [];
-      try {
-        const r = await fetch('https://archive.org/advancedsearch.php?' + p.toString());
-        if (r.ok) found = (await r.json()).response.docs.map(d => d.identifier);
-      } catch (e) {}
+      // 1. Find the uploads. Video and DVD rips both count (the Archive files many DVD rips as "software").
+      const base = ch.searchQ || '(title:(' + ch.search + ') OR subject:(' + ch.search + '))';
+      const simple = ch.terms ? '(' + ch.terms.map(t => 'title:("' + t + '")').join(' OR ') + ')' : base;
+      const findIds = async q => {
+        const p = new URLSearchParams({ q: q + ' AND mediatype:(movies OR software)' + NSFW_Q, rows: ch.maxItems || 40, page: 1, output: 'json' });
+        p.append('fl[]', 'identifier'); p.append('fl[]', 'title'); p.append('sort[]', 'identifier asc');
+        const j = await fetchJson('https://archive.org/advancedsearch.php?' + p.toString());
+        return j.response.docs.filter(d => !NOT_A_SHOW.test(clean(first(d.title)))).map(d => d.identifier);
+      };
+      let found = [], searchFailed = false;
+      try { found = await findIds(base); } catch (e) { searchFailed = true; }
+      if (!found.length && simple !== base) {
+        // Fall back to a plain title search if the fuller one failed or found nothing
+        try { found = await findIds(simple); searchFailed = false; } catch (e) { searchFailed = true; }
+      }
       const ids = [...new Set([].concat(ch.seed || [], found))].slice(0, ch.maxItems || 30);
-      const lists = await Promise.all(ids.map(id =>
-        fetch('https://archive.org/metadata/' + encodeURIComponent(id))
-          .then(r => r.ok ? r.json() : null)
-          .then(j => (j && !isBlocked(Object.assign({ identifier: id }, j.metadata || {}))) ? episodesFromItem(id, j, ch.kind) : [])
-          .catch(() => [])));
-      return [].concat(...lists);
+      // 2. Open each upload and list its episodes, a few at a time so the Archive doesn't turn us away
+      let itemFailures = 0;
+      const lists = await mapLimit(ids, 4, async id => {
+        try {
+          const j = await fetchJson('https://archive.org/metadata/' + encodeURIComponent(id));
+          if (!j || isBlocked(Object.assign({ identifier: id }, j.metadata || {}))) return [];
+          return episodesFromItem(id, j, ch.kind);
+        } catch (e) { itemFailures++; return []; }
+      });
+      const all = [].concat(...lists);
+      // Nothing because the Archive wasn't answering? Say "No signal" and try again next time, rather than "Off the air"
+      if (!all.length && (searchFailed || itemFailures)) throw new Error('No signal');
+      return all;
     }
     const r = await fetch('https://archive.org/metadata/' + encodeURIComponent(ch.source));
     if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -1930,7 +2025,11 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   function getSchedule(ci) {
     if (schedPromises[ci]) return schedPromises[ci];
     schedPromises[ci] = buildSchedule(ci)
-      .then(sch => { failed.delete(ci); return (schedules[ci] = sch); })
+      .then(sch => {
+        failed.delete(ci);
+        if (!sch.slots.length) delete schedPromises[ci]; // off the air: look again next time
+        return (schedules[ci] = sch);
+      })
       .catch(err => { delete schedPromises[ci]; failed.add(ci); throw err; });
     return schedPromises[ci];
   }
