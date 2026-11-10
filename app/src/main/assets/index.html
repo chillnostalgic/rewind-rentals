@@ -1,0 +1,1863 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rewind Rentals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bungee&family=Barlow+Semi+Condensed:wght@400;500;600&family=VT323&family=Permanent+Marker&display=swap" rel="stylesheet">
+<style>
+:root{
+  --night:#130a2b; --panel:#1d1140; --edge:#3b2b74; --pink:#ff3d8b; --cyan:#38e1e8;
+  --amber:#ffb627; --label:#f2ead3; --ink:#f5f0ff; --muted:#ab9fd8;
+  --display:"Bungee", "Impact", "Arial Black", sans-serif;
+  --body:"Barlow Semi Condensed", "Arial Narrow", "Helvetica Neue", Arial, sans-serif;
+  --vcr:"VT323", "Courier New", monospace;
+  color-scheme:dark;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+*,*::before,*::after{box-sizing:inherit}
+[hidden]{display:none !important}
+html{scroll-padding-top:env(safe-area-inset-top,0px);height:100%}
+body{
+  margin:0;min-height:100%;color:var(--ink);font-family:var(--body);font-size:18px;line-height:1.45;
+  background:radial-gradient(120% 80% at 50% -10%,#2b1460 0%,var(--night) 55%,#0a0518 100%) fixed;
+  background-color:var(--night);
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:50;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.035) 0 1px,transparent 1px 3px);
+}
+button,input{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--amber);outline-offset:3px}
+
+.app{max-width:1400px;margin:0 auto;padding:20px clamp(14px,3vw,36px) 28px;display:flex;flex-direction:column;min-height:100vh}
+
+/* Header */
+.top{display:flex;align-items:center;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.brand{display:flex;align-items:baseline;gap:10px;user-select:none}
+.logo{
+  font-family:var(--display);font-size:clamp(34px,5vw,54px);line-height:1;letter-spacing:.02em;
+  background:
+    linear-gradient(100deg,transparent 42%,rgba(255,255,255,.95) 50%,transparent 58%) 200% 0/250% 100% no-repeat,
+    linear-gradient(180deg,#fff6c9 0%,var(--amber) 42%,var(--pink) 58%,#8a2be2 100%);
+  -webkit-background-clip:text;background-clip:text;color:transparent;
+  animation:glint 7s ease-in-out 2s infinite;
+  filter:drop-shadow(0 3px 0 #2a0b4f) drop-shadow(0 0 18px rgba(255,61,139,.35));
+  transform:skewX(-8deg);
+}
+.sub{font-family:var(--display);font-size:15px;color:var(--cyan);letter-spacing:.18em}
+.search{display:flex;gap:8px;flex:0 1 380px}
+.search input{
+  flex:1;min-width:0;background:#0d0721;border:2px solid var(--edge);border-radius:6px;padding:9px 12px;
+}
+.search input::placeholder{color:var(--muted)}
+.search button,.btn,.tab{cursor:pointer}
+.search button{background:var(--cyan);color:#0d0721;border:0;border-radius:6px;padding:0 16px;font-weight:600}
+
+/* Shelf tabs */
+.tabs{display:flex;gap:8px;margin:18px 0 16px;overflow-x:auto;padding:4px 2px 6px;scrollbar-width:thin}
+.tab{
+  flex:0 0 auto;background:transparent;border:2px solid var(--edge);border-radius:4px;
+  padding:6px 14px;color:var(--muted);font-weight:600;white-space:nowrap;
+}
+.tab[aria-pressed="true"]{border-color:var(--pink);color:var(--ink);background:rgba(255,61,139,.14)}
+.tabs{margin-bottom:10px}
+
+/* Era dial and sort */
+.filters{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:0 0 16px}
+.eras{display:flex;gap:4px;overflow-x:auto;max-width:100%;background:#0d0721;border:2px solid var(--edge);border-radius:999px;padding:4px;scrollbar-width:none}
+.era{flex:0 0 auto;border:0;background:transparent;color:var(--muted);padding:4px 13px;border-radius:999px;font-weight:600;cursor:pointer;white-space:nowrap}
+.era[aria-pressed="true"]{background:var(--cyan);color:#0d0721}
+.selects{display:flex;gap:14px;flex-wrap:wrap}
+.sort{display:flex;align-items:center;gap:8px;color:var(--muted);font-weight:600}
+.sort select{background:#0d0721;border:2px solid var(--edge);border-radius:6px;padding:6px 10px;color:var(--ink);cursor:pointer}
+
+/* Store layout */
+.store{display:grid;grid-template-columns:minmax(0,1.15fr) minmax(0,1fr);gap:22px;flex:1;min-height:0}
+.shelf,.detail{background:rgba(29,17,64,.72);border:2px solid var(--edge);border-radius:10px;min-height:0}
+.shelf{display:flex;flex-direction:column;padding:16px}
+.shelf-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:10px}
+.shelf-head h2{margin:0;font-family:var(--display);font-weight:400;font-size:20px;color:var(--label)}
+#count{color:var(--muted);font-size:16px;white-space:nowrap}
+.status{margin:0 0 10px;color:var(--muted);min-height:0}
+.status:empty{display:none}
+.status.err{color:#ffb3cc}
+.spines{display:flex;flex-direction:column;gap:6px;overflow-y:auto;overflow-x:hidden;max-height:calc(100vh - 250px);padding:6px 24px 6px 4px}
+
+/* A tape spine */
+.spine{
+  --bg:#1b2f6b;--fg:#ffd23f;
+  position:relative;display:grid;grid-template-columns:78px minmax(0,1fr) auto;align-items:center;gap:12px;
+  min-height:58px;padding:6px 12px 6px 8px;border:0;border-radius:4px;text-align:left;cursor:pointer;
+  background:
+    linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,0) 35%,rgba(0,0,0,.22)),
+    var(--bg);
+  color:var(--fg);
+  box-shadow:inset 0 0 0 1px rgba(0,0,0,.35);
+}
+.spine::after{
+  content:"";position:absolute;right:62px;top:8px;bottom:8px;width:26px;opacity:.35;
+  background:repeating-linear-gradient(90deg,currentColor 0 2px,transparent 2px 4px);
+}
+.spine-tag{
+  font-size:11px;line-height:1.15;font-weight:600;letter-spacing:.04em;opacity:.85;
+  border-right:1px solid currentColor;padding-right:8px;height:100%;display:flex;flex-direction:column;justify-content:center;
+}
+.spine-title{font-family:var(--display);font-size:clamp(15px,1.6vw,21px);line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.spine-year{
+  font-family:var(--display);font-size:13px;background:var(--fg);color:var(--bg);
+  padding:2px 6px;border-radius:3px;position:relative;z-index:1;min-width:42px;text-align:center;
+}
+.spine[aria-pressed="true"]{outline:3px solid var(--amber);outline-offset:2px;box-shadow:0 0 22px rgba(255,182,39,.45)}
+.more{margin-top:6px;background:transparent;border:2px dashed var(--edge);color:var(--muted);border-radius:4px;padding:12px;cursor:pointer;font-weight:600}
+
+/* Detail panel */
+.detail{padding:20px;display:flex;flex-direction:column}
+.empty{margin:auto;color:var(--muted);text-align:center}
+.card{display:flex;flex-direction:column;gap:12px;min-height:0}
+.cover{aspect-ratio:4/3;background:#0b0618;border-radius:6px;overflow:hidden;border:2px solid var(--edge);max-height:300px}
+.cover img{width:100%;height:100%;object-fit:contain;display:block}
+#dTitle{margin:4px 0 0;font-family:var(--display);font-weight:400;font-size:clamp(22px,2.4vw,32px);line-height:1.1;color:var(--label)}
+.pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill{border:1px solid var(--edge);border-radius:999px;padding:1px 10px;font-size:15px;color:var(--muted)}
+.desc{margin:0;color:#ddd5f5;max-width:62ch;max-height:9.5em;overflow:auto;padding-right:6px}
+.actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:4px}
+.btn{
+  display:inline-flex;align-items:center;gap:8px;border-radius:6px;padding:10px 16px;font-weight:600;
+  border:2px solid var(--edge);background:transparent;text-decoration:none;color:var(--ink);
+}
+.btn.primary{background:var(--amber);border-color:var(--amber);color:#1a0d2e}
+.btn.primary::before{content:"";width:0;height:0;border-left:11px solid currentColor;border-top:7px solid transparent;border-bottom:7px solid transparent}
+.btn.ghost{color:var(--muted)}
+.msg{margin:0;color:#ffb3cc}
+.msg:empty{display:none}
+
+footer{margin-top:18px;color:var(--muted);font-size:15px}
+
+/* Rewind screen */
+.rewind{position:fixed;inset:0;z-index:60;background:#070313;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;font-family:var(--vcr)}
+.rewind[hidden],.player[hidden]{display:none}
+.rw-top{position:absolute;top:calc(18px + env(safe-area-inset-top,0px));left:24px;right:24px;display:flex;gap:28px;color:var(--cyan);font-size:22px;text-transform:uppercase}
+.rw-top span:last-child{margin-left:auto;color:var(--amber);font-size:30px}
+.rw-head{margin:0;font-size:clamp(30px,5vw,48px);color:var(--amber);text-align:center;text-transform:uppercase;letter-spacing:.04em}
+.rw-sub{margin:0 0 18px;font-size:24px;color:var(--ink)}
+.cassette{width:min(520px,90vw);background:#191033;border:3px solid #3e3170;border-radius:14px;padding:18px 22px 22px;box-shadow:0 0 40px rgba(56,225,232,.12)}
+.cass-label{background:var(--label);color:#1a1033;border-radius:4px;padding:8px 12px;display:flex;flex-direction:column;gap:2px;font-family:var(--body)}
+.cl-top,.cl-bot{font-size:13px;font-weight:600;opacity:.7}
+.cass-label strong{font-family:var(--display);font-weight:400;font-size:20px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.window{margin-top:16px;background:#0a0618;border-radius:40px;height:86px;display:flex;align-items:center;justify-content:space-between;padding:0 30px;position:relative}
+.tape-strip{position:absolute;left:84px;right:84px;top:50%;height:8px;margin-top:-4px;background:#3a2414}
+.reel{
+  width:60px;height:60px;border-radius:50%;background:#f4f0ff;position:relative;z-index:1;
+  background:conic-gradient(#1a1033 0 20deg,#f4f0ff 20deg 100deg,#1a1033 100deg 140deg,#f4f0ff 140deg 220deg,#1a1033 220deg 260deg,#f4f0ff 260deg 340deg,#1a1033 340deg);
+  border:6px solid #f4f0ff;animation:rw .45s linear infinite reverse;
+}
+@keyframes rw{to{transform:rotate(360deg)}}
+
+/* Player */
+.player{position:fixed;inset:0;z-index:70;background:#000;font-family:var(--vcr)}
+.player video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.noise{position:absolute;inset:0;pointer-events:none;opacity:0;
+  background:repeating-linear-gradient(0deg,rgba(255,255,255,.5) 0 2px,transparent 2px 9px)}
+.noise.on{animation:track 1.1s steps(6) 1}
+@keyframes track{0%{opacity:.7;transform:translateY(0)}50%{opacity:.4;transform:translateY(-30%)}100%{opacity:0;transform:translateY(-60%)}}
+.osd{position:absolute;top:calc(20px + env(safe-area-inset-top,0px));left:28px;right:28px;display:flex;justify-content:space-between;font-size:clamp(26px,3.4vw,42px);color:#eaffff;text-shadow:2px 2px 0 #000,0 0 8px rgba(56,225,232,.6);pointer-events:none;text-transform:uppercase}
+.p-error{position:absolute;inset:auto 0 45% 0;text-align:center;font-size:30px;color:var(--amber);text-shadow:2px 2px 0 #000;padding:0 20px}
+.bar{
+  position:absolute;left:0;right:0;bottom:0;padding:18px 28px calc(20px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(0deg,rgba(7,3,19,.95),rgba(7,3,19,.7) 70%,transparent);
+  transition:opacity .3s;
+}
+.player.idle .bar{opacity:0}
+.player.idle{cursor:none}
+.bar-title{font-family:var(--display);font-size:20px;color:var(--label);margin-bottom:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.progress{height:8px;background:#2d2156;border-radius:4px;cursor:pointer;margin-bottom:14px;position:relative}
+.fill{position:absolute;left:0;top:0;bottom:0;width:0;background:linear-gradient(90deg,var(--cyan),var(--pink));border-radius:4px}
+.ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+.ctl{font-family:var(--vcr);font-size:24px;text-transform:uppercase;background:#140b2e;border:2px solid var(--amber);color:var(--amber);border-radius:4px;padding:2px 14px;cursor:pointer}
+.ctl.stop{border-color:var(--pink);color:var(--pink)}
+.dur{margin-left:auto;font-size:24px;color:var(--cyan)}
+
+/* Header tools: VCR clock and sound */
+.hdr-tools{display:flex;gap:8px;align-items:center}
+.vcr-clock{font-family:var(--vcr);font-size:32px;line-height:1;color:#7dfcff;background:#06030f;border:2px solid var(--edge);border-radius:6px;padding:4px 12px;cursor:pointer;text-shadow:0 0 8px rgba(56,225,232,.7);letter-spacing:.06em}
+.vcr-clock.blink{animation:blinkText 1s steps(1) infinite}
+@keyframes blinkText{50%{color:transparent;text-shadow:none}}
+.sound-btn{border:2px solid var(--edge);background:transparent;color:var(--muted);border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer}
+.sound-btn[aria-pressed="true"]{color:var(--ink);border-color:var(--cyan)}
+
+/* Boot screen */
+.boot{position:fixed;inset:0;z-index:90;background:#1428b8;color:#fff;font-family:var(--vcr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-transform:uppercase;transition:opacity .35s;cursor:pointer}
+.boot p{margin:0}
+.boot.off{opacity:0}
+.boot-mode,.boot-time{position:absolute;top:calc(28px + env(safe-area-inset-top,0px));font-size:40px;text-shadow:2px 2px 0 #000a6e}
+.boot-mode{left:40px}
+.boot-time{right:40px;animation:blinkText 1s steps(1) infinite}
+.boot-brand{font-family:var(--display);font-size:clamp(44px,8vw,104px);line-height:1;text-transform:none;text-shadow:4px 4px 0 #000a6e;animation:roll .9s ease-out both}
+.boot-line{font-size:34px}
+.boot-skip{position:absolute;bottom:calc(36px + env(safe-area-inset-bottom,0px));font-size:26px;opacity:.85}
+@keyframes roll{0%{transform:translateY(-40px);opacity:0;filter:blur(3px)}35%{transform:translateY(8px);opacity:1}55%{transform:translateY(-3px);filter:none}100%{transform:none}}
+
+/* My tapes sections and spine stickers */
+.shelf-section{margin:12px 0 2px;font-family:var(--display);font-weight:400;font-size:15px;color:var(--cyan)}
+.shelf-section:first-child{margin-top:0}
+.spine.is-pick::before,.spine.is-resume::before{position:absolute;z-index:2;top:-4px;left:-4px;font-family:var(--display);font-size:11px;line-height:1;padding:4px 6px;border-radius:3px;transform:rotate(-8deg);box-shadow:1px 1px 0 rgba(0,0,0,.4)}
+.spine.is-pick::before{content:"★ Pick";background:var(--amber);color:#1a0d2e}
+.spine.is-resume::before{content:"❚❚ Paused";background:var(--cyan);color:#0d0721}
+
+/* Staff pick card, taped to the box */
+.staff-card{position:relative;align-self:flex-start;max-width:440px;margin:6px 0 2px;background:#fff59d;color:#2a1a0a;padding:16px 18px;transform:rotate(-1.5deg);box-shadow:3px 4px 0 rgba(0,0,0,.35);font-family:"Permanent Marker","Comic Sans MS",cursive}
+.staff-card::before{content:"";position:absolute;top:-10px;left:50%;width:70px;height:20px;margin-left:-35px;background:rgba(255,255,255,.55);transform:rotate(3deg)}
+.sc-by{margin:0 0 4px;font-size:15px;opacity:.75}
+.sc-note{margin:0;font-size:19px;line-height:1.35}
+
+/* Station ident */
+.ident{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;background:radial-gradient(circle at 50% 45%,var(--chc,#ff3d8b) 0%,#140a2e 62%,#05020d 100%)}
+.id-num{font-family:var(--vcr);font-size:clamp(120px,22vw,260px);line-height:.8;color:#fff;text-shadow:6px 6px 0 rgba(0,0,0,.35)}
+.id-name{font-family:var(--display);font-size:clamp(28px,4vw,56px);color:#fff;text-align:center}
+.id-tag{font-family:var(--vcr);font-size:28px;color:var(--label);text-transform:uppercase;letter-spacing:.1em}
+.ident.go .id-num{animation:idpop .8s cubic-bezier(.2,1.6,.4,1) both}
+.ident.go .id-name{animation:idpop .8s .15s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes idpop{from{transform:scale(.3);opacity:0}to{transform:none;opacity:1}}
+
+/* Bigger type on a living-room screen */
+@media (min-width:1600px){
+  body{font-size:21px}
+  .spine{min-height:66px}
+}
+
+
+/* ===== Juice ===== */
+@keyframes glint{0%,72%{background-position:200% 0,0 0}100%{background-position:-120% 0,0 0}}
+
+/* Synthwave floor scrolling under the shop */
+.horizon{position:fixed;left:0;right:0;bottom:0;height:42vh;z-index:0;pointer-events:none;overflow:hidden;perspective:320px;
+  -webkit-mask-image:linear-gradient(0deg,#000 0%,rgba(0,0,0,.55) 55%,transparent 100%);mask-image:linear-gradient(0deg,#000 0%,rgba(0,0,0,.55) 55%,transparent 100%)}
+.horizon::before{content:"";position:absolute;left:0;right:0;top:0;height:2px;background:var(--pink);box-shadow:0 0 24px 6px rgba(255,61,139,.55)}
+.grid-floor{position:absolute;left:-50%;right:-50%;top:0;height:200%;transform-origin:50% 0;transform:rotateX(62deg);opacity:.42}
+.grid-floor::before{content:"";position:absolute;inset:0;
+  background:repeating-linear-gradient(90deg,rgba(255,61,139,.7) 0 2px,transparent 2px 90px),repeating-linear-gradient(0deg,rgba(56,225,232,.55) 0 2px,transparent 2px 70px);
+  animation:floor 2.4s linear infinite}
+@keyframes floor{to{transform:translateY(70px)}}
+.app{position:relative;z-index:1}
+
+/* Everything you press gives a little */
+.btn,.tab,.era,.ctl,.mode,.sound-btn,.vcr-clock,.search button,.more,.ch-row{transition:transform .14s cubic-bezier(.2,1.6,.4,1),box-shadow .2s,background-color .2s,color .2s,border-color .2s}
+.btn:active,.tab:active,.era:active,.ctl:active,.mode:active,.sound-btn:active,.vcr-clock:active,.search button:active,.more:active{transform:scale(.94)}
+.btn:hover,.tab:hover,.era:hover,.mode:hover,.sound-btn:hover,.more:hover{transform:translateY(-2px)}
+.tab:focus-visible,.era:focus-visible,.btn:focus-visible,.mode:focus-visible,.sound-btn:focus-visible,.vcr-clock:focus-visible,.ctl:focus-visible{box-shadow:0 0 0 3px var(--amber),0 0 22px rgba(255,182,39,.55);outline:none;transform:translateY(-2px)}
+.btn.primary{box-shadow:0 4px 0 #a8650b}
+.btn.primary:focus-visible,.btn.primary:hover{animation:throb 1.4s ease-in-out infinite}
+@keyframes throb{0%,100%{box-shadow:0 4px 0 #a8650b,0 0 0 3px var(--amber),0 0 14px rgba(255,182,39,.4)}50%{box-shadow:0 4px 0 #a8650b,0 0 0 3px var(--amber),0 0 34px rgba(255,182,39,.85)}}
+
+/* Tapes slide off the shelf towards you */
+.spine{transition:transform .28s cubic-bezier(.2,1.5,.4,1),box-shadow .25s,filter .25s}
+.spine:hover{transform:translateX(6px)}
+.spine[aria-pressed="true"],.spine:focus-visible{transform:translateX(16px) scale(1.015);box-shadow:-6px 6px 0 rgba(0,0,0,.35),0 0 26px rgba(255,182,39,.5);outline:3px solid var(--amber);outline-offset:2px;z-index:1}
+.spine.new{animation:spineIn .42s cubic-bezier(.2,1.3,.4,1) both;animation-delay:calc(min(var(--i),16) * 28ms)}
+@keyframes spineIn{from{opacity:0;transform:translateX(-48px) rotate(-1.5deg)}to{opacity:1;transform:none}}
+.skel{height:58px;border-radius:4px;background:linear-gradient(90deg,#241650 0%,#33226b 40%,#241650 80%) 0 0/300% 100%;animation:shimmer 1.1s linear infinite}
+@keyframes shimmer{to{background-position:-300% 0}}
+
+/* The box: tilted like it's standing on the shelf, with a VHS glitch on every change */
+.detail{perspective:1400px}
+.cover{position:relative;transform:rotateY(-9deg) rotateX(1.5deg);transform-origin:20% 50%;box-shadow:14px 16px 0 rgba(0,0,0,.35),inset 0 0 0 1px rgba(255,255,255,.06);transition:transform .5s cubic-bezier(.2,1.3,.4,1)}
+.cover::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 30%,rgba(255,255,255,.16) 45%,transparent 60%) -120% 0/250% 100% no-repeat}
+.detail:hover .cover{transform:rotateY(-3deg) rotateX(0)}
+.card.swap .cover{animation:boxIn .5s cubic-bezier(.2,1.3,.4,1) both}
+.card.swap .cover::after{animation:sheen .9s .15s ease-out both}
+.card.swap .cover img{animation:vhsGlitch .45s steps(5) both}
+.card.swap #dTitle,.card.swap .pills,.card.swap .staff-card,.card.swap .desc,.card.swap .actions{animation:riseIn .4s cubic-bezier(.2,1.2,.4,1) both}
+.card.swap .pills{animation-delay:.04s}.card.swap .staff-card{animation-delay:.08s}.card.swap .desc{animation-delay:.1s}.card.swap .actions{animation-delay:.14s}
+@keyframes boxIn{from{opacity:0;transform:rotateY(-38deg) translateX(40px)}to{opacity:1;transform:rotateY(-9deg) rotateX(1.5deg)}}
+@keyframes sheen{to{background-position:220% 0}}
+@keyframes vhsGlitch{0%{transform:translateX(-10px);filter:saturate(3) hue-rotate(40deg);clip-path:inset(10% 0 55% 0)}40%{transform:translateX(8px);clip-path:inset(50% 0 10% 0)}70%{transform:translateX(-3px);clip-path:inset(0 0 0 0)}100%{transform:none;filter:none;clip-path:inset(0 0 0 0)}}
+@keyframes riseIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+.staff-card{transition:transform .3s cubic-bezier(.2,1.6,.4,1)}
+.detail:hover .staff-card{transform:rotate(1deg) scale(1.02)}
+
+/* Rubber stamp when you add or remove a tape */
+.actions{position:relative}
+.stamp{position:absolute;right:6%;top:-58px;z-index:5;pointer-events:none;font-family:var(--display);font-size:30px;padding:4px 14px;border:4px solid currentColor;border-radius:8px;color:var(--pink);background:rgba(19,10,43,.85);animation:stamp .9s cubic-bezier(.2,1.6,.4,1) both}
+.stamp.good{color:var(--cyan)}
+@keyframes stamp{0%{opacity:0;transform:scale(2.4) rotate(-22deg)}25%{opacity:1;transform:scale(1) rotate(-10deg)}75%{opacity:1;transform:scale(1) rotate(-10deg)}100%{opacity:0;transform:scale(.9) rotate(-10deg) translateY(-12px)}}
+
+/* Guide: live dot, rows that lift */
+.ch-row:hover,.ch-row:focus-visible{transform:translateX(10px);box-shadow:-6px 6px 0 rgba(0,0,0,.35),0 0 24px rgba(255,182,39,.45)}
+.ch-now .slot-time::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:#ff3b3b;margin-right:6px;vertical-align:1px;box-shadow:0 0 8px #ff3b3b;animation:onair 1.4s ease-in-out infinite}
+@keyframes onair{50%{opacity:.25}}
+.mini span{background:linear-gradient(90deg,var(--cyan),var(--pink),var(--cyan)) 0 0/200% 100%;animation:shimmer 2.5s linear infinite}
+
+/* CRT power on, power off and channel-change roll */
+.player.crt-on,.tv.crt-on{animation:crtOn .5s cubic-bezier(.2,.9,.3,1) both}
+@keyframes crtOn{0%{transform:scale(1,.004);opacity:1;filter:brightness(6)}45%{transform:scale(1,.004);filter:brightness(6)}100%{transform:none;filter:none}}
+.crt-off{position:fixed;inset:0;z-index:95;background:#000;pointer-events:none;display:flex;align-items:center;justify-content:center}
+.crt-off::before{content:"";width:100%;height:4px;background:#fff;box-shadow:0 0 30px 8px #fff;animation:crtOff .38s ease-in both}
+.crt-off{animation:fadeOut .45s ease-in both}
+@keyframes crtOff{0%{transform:scaleX(1)}70%{transform:scaleX(.02);height:4px}100%{transform:scaleX(0)}}
+@keyframes fadeOut{0%,70%{opacity:1}100%{opacity:0}}
+.tv video.roll{animation:roll2 .45s steps(6) both}
+@keyframes roll2{0%{transform:translateY(-18%) scaleY(1.1)}30%{transform:translateY(12%) skewX(4deg)}60%{transform:translateY(-4%) skewX(-2deg)}100%{transform:none}}
+.ident.go::after{content:"";position:absolute;inset:0;background:radial-gradient(circle,rgba(255,255,255,.35),transparent 60%);animation:flash .6s ease-out both}
+@keyframes flash{from{opacity:1}to{opacity:0}}
+
+@media (prefers-reduced-motion:reduce){
+  .logo,.grid-floor::before,.spine.new,.skel,.card.swap .cover,.card.swap .cover::after,.card.swap .cover img,.card.swap #dTitle,.card.swap .pills,.card.swap .staff-card,.card.swap .desc,.card.swap .actions,.stamp,.ch-now .slot-time::before,.mini span,.player.crt-on,.tv.crt-on,.crt-off,.crt-off::before,.tv video.roll,.btn.primary:focus-visible,.btn.primary:hover,.ident.go::after{animation:none !important}
+  .spine,.cover,.btn,.tab,.era,.ch-row{transition:none}
+}
+
+/* Mode switch */
+.modes{display:flex;gap:0;border:2px solid var(--edge);border-radius:6px;overflow:hidden;margin-right:auto;margin-left:8px}
+.mode{border:0;background:transparent;color:var(--muted);padding:8px 16px;font-weight:600;cursor:pointer}
+.mode[aria-pressed="true"]{background:var(--pink);color:#fff}
+#tapesView{display:flex;flex-direction:column;flex:1;min-height:0}
+
+/* Guide */
+.guide{flex:1;margin-top:18px;background:rgba(29,17,64,.72);border:2px solid var(--edge);border-radius:10px;padding:16px}
+.guide-head{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.guide-head h2{margin:0;font-family:var(--display);font-weight:400;font-size:20px;color:var(--label)}
+#guideClock{font-family:var(--vcr);font-size:30px;color:var(--amber)}
+.guide-cols,.ch-row{display:grid;grid-template-columns:210px minmax(0,1.4fr) minmax(0,1fr) minmax(0,1fr)}
+.guide-cols{margin:12px 0 6px;color:var(--muted);font-size:15px;font-weight:600}
+.guide-cols span{padding:0 14px}
+.guide-grid{display:flex;flex-direction:column;gap:6px}
+.ch-row{--chc:var(--pink);border:0;padding:0;background:#160c33;border-radius:4px;text-align:left;cursor:pointer;overflow:hidden;color:var(--ink)}
+.ch-row > div{padding:9px 14px;border-left:2px solid #0d0721;min-width:0}
+.ch-row:hover,.ch-row:focus-visible{outline:3px solid var(--amber);outline-offset:2px}
+.ch-id{background:var(--chc);color:#0d0721;display:flex;align-items:center;gap:12px;border-left:0 !important}
+.ch-num{font-family:var(--vcr);font-size:34px;line-height:1}
+.ch-name{font-family:var(--display);font-size:14px;line-height:1.15}
+.ch-now{background:#21134a}
+.slot-time{display:block;font-size:14px;color:var(--muted)}
+.slot-title{display:block;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mini{display:block;height:4px;background:#2d2156;border-radius:2px;margin-top:6px;overflow:hidden}
+.mini span{display:block;height:100%;width:0;background:var(--cyan)}
+.guide-note{margin:14px 0 0;color:var(--muted);font-size:15px;max-width:80ch}
+
+/* TV screen */
+.tv{position:fixed;inset:0;z-index:70;background:#000;font-family:var(--vcr)}
+.tv video{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;background:#000}
+.tv.idle{cursor:none}
+.tv.idle .banner{opacity:0}
+.standby{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;
+  background:linear-gradient(90deg,#c0c0c0 0 14.28%,#c0c000 0 28.56%,#00c0c0 0 42.84%,#00c000 0 57.12%,#c000c0 0 71.4%,#c00000 0 85.68%,#0000c0 0)}
+.sb-card{background:rgba(0,0,0,.8);padding:18px 30px;border-radius:6px;text-align:center;max-width:640px}
+.sb-head{margin:0;font-size:clamp(34px,5vw,54px);color:#fff;text-transform:uppercase;letter-spacing:.06em}
+.sb-sub{margin:4px 0 0;font-size:24px;color:var(--amber)}
+.sb-sub:empty{display:none}
+.banner{position:absolute;left:0;right:0;bottom:0;padding:18px 28px calc(20px + env(safe-area-inset-bottom,0px));
+  background:linear-gradient(0deg,rgba(7,3,19,.96),rgba(7,3,19,.75) 70%,transparent);transition:opacity .3s}
+.bn-top{display:flex;align-items:baseline;gap:14px}
+.bn-num{font-size:52px;line-height:1;color:var(--amber)}
+.bn-name{font-family:var(--display);font-size:22px;color:var(--cyan)}
+.bn-now{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 16px;margin:4px 0 10px}
+.bn-now strong{font-family:var(--display);font-weight:400;font-size:24px;color:var(--label)}
+.bn-now span{font-size:24px;color:var(--muted)}
+.bn-next{margin:0 0 12px;font-size:24px;color:var(--ink)}
+.bn-next:empty{display:none}
+
+@media (max-width:820px){
+  .guide-cols{display:none}
+  .ch-row{grid-template-columns:118px minmax(0,1fr)}
+  .ch-next,.ch-later{display:none}
+  .ch-name{font-size:12px}
+  .modes{margin-left:0}
+}
+@media (max-width:820px){
+  .store{grid-template-columns:1fr}
+  .detail{order:-1}
+  .spines{max-height:none;overflow:visible}
+  .cover{max-height:220px}
+  .spine{grid-template-columns:62px minmax(0,1fr) auto}
+  .spine::after{display:none}
+}
+@media (prefers-reduced-motion:reduce){
+  .reel,.boot-brand,.boot-time,.vcr-clock.blink,.ident.go .id-num,.ident.go .id-name{animation:none}
+  .boot{transition:none}
+  .noise.on{animation:none}
+  .bar{transition:none}
+}
+</style>
+</head>
+<body>
+<div class="horizon" aria-hidden="true"><div class="grid-floor"></div></div>
+<div class="app">
+  <header class="top">
+    <div class="brand" aria-label="Rewind Rentals"><span class="logo">Rewind</span><span class="sub">Rentals</span></div>
+    <div class="modes" role="group" aria-label="Mode">
+      <button class="mode hdr" id="modeTapes" type="button" aria-pressed="true">Rent tapes</button>
+      <button class="mode hdr" id="modeTv" type="button" aria-pressed="false">Watch TV</button>
+    </div>
+    <div class="hdr-tools">
+      <button class="vcr-clock hdr blink" id="vcrClock" type="button">12:00</button>
+      <button class="sound-btn hdr" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
+    </div>
+    <form class="search" id="searchForm" role="search">
+      <input id="q" type="search" placeholder="Search every shelf" aria-label="Search every shelf" autocomplete="off">
+      <button type="submit">Search</button>
+    </form>
+  </header>
+
+  <div id="tapesView">
+  <nav class="tabs" id="tabs" aria-label="Shelves"></nav>
+
+  <div class="filters">
+    <div class="eras" id="eras" role="group" aria-label="Era"></div>
+    <div class="selects">
+      <label class="sort">Genre <select id="genre"></select></label>
+      <label class="sort">Sort by <select id="sort"></select></label>
+    </div>
+  </div>
+
+  <main class="store">
+    <section class="shelf" aria-label="Tapes on this shelf">
+      <div class="shelf-head"><h2 id="shelfName"></h2><span id="count"></span></div>
+      <p class="status" id="status" role="status"></p>
+      <div class="spines" id="spines"></div>
+    </section>
+
+    <aside class="detail" id="detail">
+      <p class="empty" id="empty">Pick a tape from the shelf.</p>
+      <div class="card" id="card" hidden>
+        <div class="cover"><img id="cover" alt=""></div>
+        <h3 id="dTitle"></h3>
+        <div class="pills" id="pills"></div>
+        <div class="staff-card" id="staffCard" hidden><p class="sc-by" id="scBy"></p><p class="sc-note" id="scNote"></p></div>
+        <p class="desc" id="desc"></p>
+        <div class="actions" id="actions">
+          <button class="btn primary" id="playBtn" type="button">Play tape</button>
+          <button class="btn" id="restartBtn" type="button" hidden>Start from the beginning</button>
+          <button class="btn" id="keepBtn" type="button" aria-pressed="false">Add to My tapes</button>
+          <a class="btn ghost" id="iaLink" target="_blank" rel="noopener">View on Internet Archive</a>
+        </div>
+        <p class="msg" id="dMsg" role="alert"></p>
+      </div>
+    </aside>
+  </main>
+  </div>
+
+  <section class="guide" id="guide" hidden aria-label="TV guide">
+    <div class="guide-head"><h2>Rewind TV guide</h2><span id="guideClock"></span></div>
+    <p class="status" id="guideStatus" role="status"></p>
+    <div class="guide-cols" aria-hidden="true"><span>Channel</span><span>On now</span><span>Next</span><span>Later</span></div>
+    <div class="guide-grid" id="guideGrid"></div>
+    <p class="guide-note">Each channel runs a 72-hour loop on a shared clock, so whenever you tune in, the show is already underway. Up and down flip channels, number keys jump straight to one.</p>
+  </section>
+
+  <footer>Every tape streams straight from the Internet Archive’s public domain film collections. Rewind Rentals hosts no video.</footer>
+</div>
+
+<div class="boot" id="boot" role="dialog" aria-label="Starting Rewind Rentals">
+  <p class="boot-mode">Video 1</p>
+  <p class="boot-time">12:00</p>
+  <p class="boot-brand">Rewind Rentals</p>
+  <p class="boot-line">Auto tracking<span class="dots">...</span></p>
+  <p class="boot-skip">Press any button to start</p>
+</div>
+
+<div class="rewind" id="rewind" hidden>
+  <div class="rw-top"><span>SP</span><span>Auto tracking</span><span id="rwCounter">0:00:00</span></div>
+  <p class="rw-head" id="rwHead">Someone forgot to rewind…</p>
+  <p class="rw-sub" id="rwSub">Fast-reversing to the beginning ◀◀</p>
+  <div class="cassette">
+    <div class="cass-label"><span class="cl-top">Rewind Rentals</span><strong id="rwTitle"></strong><span class="cl-bot">Be kind, please rewind</span></div>
+    <div class="window"><div class="reel"></div><div class="tape-strip"></div><div class="reel"></div></div>
+  </div>
+</div>
+
+<div class="player" id="player" hidden>
+  <video id="video" playsinline preload="auto"></video>
+  <div class="noise" id="noise"></div>
+  <div class="osd"><span id="osdState">Play ▶</span><span id="osdTime">0:00:00</span></div>
+  <p class="p-error" id="pError" hidden></p>
+  <div class="bar" id="bar">
+    <div class="bar-title" id="pTitle"></div>
+    <div class="progress" id="progress" aria-label="Tape position"><div class="fill" id="fill"></div></div>
+    <div class="ctrls" id="ctrls">
+      <button class="ctl" data-act="toggle" id="toggleBtn" type="button">Pause</button>
+      <button class="ctl" data-act="rew" type="button">Rew 30s</button>
+      <button class="ctl" data-act="ffwd" type="button">FFwd 30s</button>
+      <button class="ctl" data-act="full" type="button">Full screen</button>
+      <button class="ctl stop" data-act="stop" type="button">Stop</button>
+      <span class="dur" id="dur"></span>
+    </div>
+  </div>
+</div>
+
+<div class="tv" id="tv" hidden>
+  <video id="tvVideo" playsinline preload="auto"></video>
+  <div class="noise" id="tvNoise"></div>
+  <div class="standby" id="standby" hidden>
+    <div class="sb-card"><p class="sb-head">Please stand by</p><p class="sb-sub" id="sbSub"></p></div>
+  </div>
+  <div class="ident" id="ident" hidden><span class="id-num" id="idNum"></span><span class="id-name" id="idName"></span><span class="id-tag">You’re watching Rewind TV</span></div>
+  <div class="osd"><span id="tvCh">CH 02</span><span id="tvClock"></span></div>
+  <div class="banner" id="banner">
+    <div class="bn-top"><span class="bn-num" id="bnNum"></span><span class="bn-name" id="bnName"></span></div>
+    <div class="bn-now"><strong id="bnTitle"></strong><span id="bnTime"></span></div>
+    <div class="progress"><div class="fill" id="bnFill"></div></div>
+    <p class="bn-next" id="bnNext"></p>
+    <div class="ctrls" id="tvCtrls">
+      <button class="ctl" data-act="up" type="button">Ch ▲</button>
+      <button class="ctl" data-act="down" type="button">Ch ▼</button>
+      <button class="ctl" data-act="full" type="button">Full screen</button>
+      <button class="ctl stop" data-act="guide" type="button">Guide</button>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  // Shelves map to Internet Archive collections of public domain film.
+  const SHELVES = [
+    { id: 'feature_films',    name: 'Feature films',          tag: 'Feature', films: true, minLength: 40 * 60 },
+    { id: 'Film_Noir',        name: 'Film noir',              tag: 'Noir',    films: true },
+    { id: 'SciFi_Horror',     name: 'Sci-fi and horror',      tag: 'Sci-fi',  films: true },
+    { id: 'Comedy_Films',     name: 'Comedy',                 tag: 'Comedy',  films: true },
+    { id: 'classic_cartoons', name: 'Cartoons',               tag: 'Toons' },
+    { id: 'silent_films',     name: 'Silent era',             tag: 'Silent',  films: true },
+    { id: 'prelinger',        name: 'Old adverts and oddities', tag: 'Prelinger' }
+  ];
+  const SPINE_COLOURS = [
+    ['#1b2f6b','#ffd23f'], ['#7a1030','#f2ead3'], ['#0f4d3f','#ffb627'], ['#f2ead3','#1a1033'],
+    ['#2a1450','#38e1e8'], ['#c2410c','#fff7e6'], ['#111018','#ff3d8b'], ['#e7c52b','#1b1035']
+  ];
+  const ERAS = [
+    { id: 'all',     name: 'All eras' },
+    { id: 'early',   name: 'Before 1920', from: 1880, to: 1919 },
+    { id: '1920s',   name: '1920s', from: 1920, to: 1929 },
+    { id: '1930s',   name: '1930s', from: 1930, to: 1939 },
+    { id: '1940s',   name: '1940s', from: 1940, to: 1949 },
+    { id: '1950s',   name: '1950s', from: 1950, to: 1959 },
+    { id: '1960s',   name: '1960s', from: 1960, to: 1969 },
+    { id: '1970s',   name: '1970s', from: 1970, to: 1979 },
+    { id: '1980s',   name: '1980s', from: 1980, to: 1989 },
+    { id: '1990s',   name: '1990s', from: 1990, to: 1999 },
+    { id: '2000s',   name: '2000s', from: 2000, to: 2009 },
+    { id: 'later',   name: '2010 onwards', from: 2010, to: 2100 }
+  ];
+  const SORTS = [
+    { id: 'popular', name: 'Most rented',  sort: 'downloads desc' },
+    { id: 'oldest',  name: 'Oldest first', sort: 'year asc' },
+    { id: 'newest',  name: 'Newest first', sort: 'year desc' },
+    { id: 'az',      name: 'Title A to Z', sort: 'titleSorter asc' },
+    { id: 'za',      name: 'Title Z to A', sort: 'titleSorter desc' },
+    { id: 'added',   name: 'Newest to the Archive', sort: 'addeddate desc' }
+  ];
+  const GENRES = [
+    { id: 'any',         name: 'Any genre' },
+    { id: 'comedy',      name: 'Comedy',            q: 'subject:(comedy OR comedies)' },
+    { id: 'drama',       name: 'Drama',             q: 'subject:(drama)' },
+    { id: 'crime',       name: 'Crime and mystery', q: 'subject:(crime OR mystery OR detective OR noir OR gangster)' },
+    { id: 'horror',      name: 'Horror',            q: 'subject:(horror OR monster OR vampire OR zombie)' },
+    { id: 'scifi',       name: 'Sci-fi',            q: 'subject:("science fiction" OR sci-fi OR scifi OR space)' },
+    { id: 'western',     name: 'Western',           q: 'subject:(western OR westerns OR cowboy)' },
+    { id: 'war',         name: 'War',               q: 'subject:(war OR "world war")' },
+    { id: 'romance',     name: 'Romance',           q: 'subject:(romance OR romantic OR love)' },
+    { id: 'musical',     name: 'Musical',           q: 'subject:(musical OR musicals OR music)' },
+    { id: 'adventure',   name: 'Action and adventure', q: 'subject:(adventure OR action OR swashbuckler)' },
+    { id: 'family',      name: 'Family and kids',   q: 'subject:(family OR children OR kids OR animation)' },
+    { id: 'documentary', name: 'Documentary',       q: 'subject:(documentary)' }
+  ];
+  const ROWS = 50;
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+  const $ = id => document.getElementById(id);
+  const els = {
+    tabs: $('tabs'), spines: $('spines'), status: $('status'), shelfName: $('shelfName'), count: $('count'),
+    empty: $('empty'), card: $('card'), cover: $('cover'), dTitle: $('dTitle'), pills: $('pills'), desc: $('desc'),
+    playBtn: $('playBtn'), restartBtn: $('restartBtn'), iaLink: $('iaLink'), dMsg: $('dMsg'),
+    rewind: $('rewind'), rwHead: $('rwHead'), rwSub: $('rwSub'), rwTitle: $('rwTitle'), rwCounter: $('rwCounter'),
+    player: $('player'), video: $('video'), noise: $('noise'), osdState: $('osdState'), osdTime: $('osdTime'),
+    pError: $('pError'), bar: $('bar'), pTitle: $('pTitle'), progress: $('progress'), fill: $('fill'),
+    toggleBtn: $('toggleBtn'), dur: $('dur'), ctrls: $('ctrls'), q: $('q'), eras: $('eras'), sort: $('sort'), genre: $('genre'),
+    filters: document.querySelector('.filters'), keepBtn: $('keepBtn'), staffCard: $('staffCard'), scBy: $('scBy'), scNote: $('scNote')
+  };
+
+  const state = { shelf: 0, special: null, era: 0, genre: 0, sort: 0, query: '', items: [], page: 1, total: 0, loading: false, selected: -1, playing: null };
+
+  // Storage only remembers where you stopped a tape, on this device.
+  const store = {
+    get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch (e) { return null; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} },
+    del(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  };
+  const posKey = id => 'rewind-rentals-pos:' + id;
+
+  // Sound effects, synthesised with Web Audio so there are no files to load
+  const sfx = (() => {
+    let ctx = null, on = (store.get('rewind-rentals-prefs') || {}).sound !== false;
+    const ac = () => {
+      if (!on) return null;
+      if (!ctx) { try { ctx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; } }
+      if (ctx.state === 'suspended') ctx.resume().catch(() => {});
+      return ctx;
+    };
+    const tone = (freq, dur, type, vol, slideTo, delay) => {
+      const c = ac(); if (!c) return;
+      const t0 = c.currentTime + (delay || 0);
+      const o = c.createOscillator(), g = c.createGain();
+      o.type = type || 'square';
+      o.frequency.setValueAtTime(freq, t0);
+      if (slideTo) o.frequency.exponentialRampToValueAtTime(slideTo, t0 + dur);
+      g.gain.setValueAtTime(vol || 0.03, t0);
+      g.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+      o.connect(g); g.connect(c.destination);
+      o.start(t0); o.stop(t0 + dur + 0.05);
+    };
+    const noise = (dur, vol, freq, sweepTo) => {
+      const c = ac(); if (!c) return;
+      const n = Math.floor(c.sampleRate * dur), buf = c.createBuffer(1, n, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1;
+      const src = c.createBufferSource(); src.buffer = buf;
+      const f = c.createBiquadFilter(); f.type = 'bandpass';
+      f.frequency.setValueAtTime(freq || 2000, c.currentTime);
+      if (sweepTo) f.frequency.exponentialRampToValueAtTime(sweepTo, c.currentTime + dur);
+      const g = c.createGain();
+      g.gain.setValueAtTime(vol || 0.05, c.currentTime);
+      g.gain.exponentialRampToValueAtTime(0.0001, c.currentTime + dur);
+      src.connect(f); f.connect(g); g.connect(c.destination); src.start();
+    };
+    return {
+      get on() { return on; },
+      setOn(v) { on = v; if (!v && ctx) ctx.suspend().catch(() => {}); },
+      move() { tone(1200, 0.035, 'square', 0.015); },
+      select() { tone(660, 0.06, 'square', 0.025); tone(990, 0.08, 'square', 0.025, 0, 0.05); },
+      clunk() { noise(0.12, 0.14, 380); tone(120, 0.18, 'triangle', 0.09, 55); },
+      rewind(dur) { noise(dur, 0.035, 4200, 1400); tone(240, dur, 'sawtooth', 0.01, 170); },
+      static() { noise(0.3, 0.05, 2600); },
+      power() { tone(70, 0.5, 'sine', 0.1, 40); noise(0.25, 0.03, 900); },
+      jingle() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.05, 0, i * 0.13)); }
+    };
+  })();
+  let keyNav = false;
+  document.addEventListener('keydown', () => { keyNav = true; }, true);
+  document.addEventListener('pointerdown', () => { keyNav = false; }, true);
+  document.addEventListener('focusin', () => { if (keyNav) sfx.move(); });
+
+  // Helpers
+  const first = v => Array.isArray(v) ? v[0] : v;
+  const clean = v => {
+    if (Array.isArray(v)) v = v.join(' ');
+    if (!v) return '';
+    const doc = new DOMParser().parseFromString(String(v), 'text/html');
+    return (doc.body.textContent || '').replace(/\s+/g, ' ').trim();
+  };
+  const yearOf = d => {
+    const y = String(first(d.year) || first(d.date) || '').slice(0, 4);
+    return /^\d{4}$/.test(y) ? y : '';
+  };
+  const fmt = s => {
+    s = Math.max(0, Math.floor(s || 0));
+    const h = Math.floor(s / 3600), m = Math.floor(s % 3600 / 60), sec = s % 60;
+    return h + ':' + String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+  };
+  const hash = str => { let h = 0; for (const c of str) h = (h * 31 + c.charCodeAt(0)) | 0; return Math.abs(h); };
+  const shelfFor = d => {
+    const cols = [].concat(d.collection || []);
+    return SHELVES.find(s => cols.includes(s.id)) || SHELVES[state.shelf];
+  };
+  /* Film shelves: keep TV episodes out.
+     1. In the search itself: skip anything also filed under a TV collection or tagged as a series.
+     2. On arrival: skip titles and descriptions that read like an episode, and tagged TV.
+     3. Feature films only: skip anything with a listed length under 40 minutes. */
+  const TV_COLLECTIONS = ['television', 'classic_tv', 'classic_tv_1950s', 'classic_tv_1960s', 'classic_tv_1970s', 'classic_tv_1980s', 'classic_tv_1990s', 'classic_tv_2000s', 'childrenstelevision', 'tvarchive', 'tv_shows', 'animatedtv'];
+  const FILM_ONLY_Q = ' AND NOT collection:(' + TV_COLLECTIONS.join(' OR ') + ')' +
+    ' AND NOT subject:("tv series" OR "television series" OR "tv show" OR "television show" OR "tv episode" OR sitcom OR "tv movie" OR anime OR "web series")';
+  const EPISODE_TITLE = /\bS\d{1,2}\s?E\d{1,3}\b|\bepisode\b|\bep\.?\s?\d{1,3}\b|\bseason\s?\d|\bseries\s\d+\b|\b\d{1,2}x\d{2}\b|\bchapter\s\d+\b|\bpilot\b|\bpart\s\d+\s?(of|\/)\s?\d+/i;
+  const EPISODE_DESC = /\b(episode|episodes)\s(of|from)\b|\b(this|the)\s(episode)\b|\bseason\s\d+\b|\btv series\b|\btelevision series\b|\bsitcom\b/i;
+  const TV_SUBJECT = /\b(tv|television)\s(series|show|episode|programme|program)\b|\bsitcom\b|\banime\b/i;
+  function looksLikeTv(d, shelf) {
+    const title = clean(first(d.title));
+    if (EPISODE_TITLE.test(title)) return true;
+    if (EPISODE_DESC.test(clean(d.description).slice(0, 600))) return true;
+    if (TV_SUBJECT.test([].concat(d.subject || []).join(' | '))) return true;
+    const cols = [].concat(d.collection || []);
+    if (cols.some(c => TV_COLLECTIONS.includes(c))) return true;
+    if (shelf && shelf.minLength) {
+      const len = parseRuntime(first(d.runtime), 'movies');
+      if (len && (len < shelf.minLength || len > 4 * 3600)) return true;
+    }
+    return false;
+  }
+  const safeQuery = q => q.replace(/[():"\\\[\]{}^~*?!:\/]/g, ' ').trim();
+  const setStatus = (msg, isErr) => { els.status.textContent = msg; els.status.classList.toggle('err', !!isErr); };
+
+  // Tabs
+  function renderTabs() {
+    els.tabs.innerHTML = '';
+    const add = (label, pressed, onClick) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'tab'; b.textContent = label;
+      b.setAttribute('aria-pressed', String(pressed));
+      b.addEventListener('click', onClick);
+      els.tabs.appendChild(b);
+    };
+    add('Staff picks', state.special === 'picks', () => openSpecial('picks'));
+    add('My tapes', state.special === 'mine', () => openSpecial('mine'));
+    SHELVES.forEach((s, i) => add(s.name, !state.query && !state.special && i === state.shelf, () => {
+      state.shelf = i; state.special = null; state.query = ''; els.q.value = ''; renderTabs(); loadShelf(true);
+    }));
+  }
+  function openSpecial(kind) { state.special = kind; state.query = ''; els.q.value = ''; renderTabs(); loadShelf(true); }
+
+  // Era dial and sort menu
+  const prefs = store.get('rewind-rentals-prefs') || {};
+  state.era = Math.max(0, ERAS.findIndex(e => e.id === prefs.era));
+  state.sort = Math.max(0, SORTS.findIndex(s => s.id === prefs.sort));
+  state.genre = Math.max(0, GENRES.findIndex(g => g.id === prefs.genre));
+  state.mode = prefs.mode === 'tv' ? 'tv' : 'tapes';
+  state.clockSet = prefs.clock === true;
+  const savePrefs = () => store.set('rewind-rentals-prefs', { era: ERAS[state.era].id, genre: GENRES[state.genre].id, sort: SORTS[state.sort].id, mode: state.mode, sound: sfx.on, clock: state.clockSet });
+
+  // VCR clock: blinks 12:00 until you set it, like every VCR ever
+  const vcrClock = $('vcrClock'), soundBtn = $('soundBtn');
+  function renderClock() {
+    if (!state.clockSet) {
+      vcrClock.textContent = '12:00';
+      vcrClock.classList.add('blink');
+      vcrClock.setAttribute('aria-label', 'VCR clock blinking 12:00. Press to set the time.');
+    } else {
+      vcrClock.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false });
+      vcrClock.classList.remove('blink');
+      vcrClock.setAttribute('aria-label', 'VCR clock showing ' + vcrClock.textContent + '. Press to unset it.');
+    }
+  }
+  vcrClock.addEventListener('click', () => { state.clockSet = !state.clockSet; savePrefs(); renderClock(); sfx.select(); });
+  setInterval(renderClock, 5000);
+  renderClock();
+  function renderSound() { soundBtn.textContent = sfx.on ? 'Sound on' : 'Sound off'; soundBtn.setAttribute('aria-pressed', String(sfx.on)); }
+  soundBtn.addEventListener('click', () => { sfx.setOn(!sfx.on); savePrefs(); renderSound(); sfx.select(); });
+  renderSound();
+
+  function renderEras() {
+    els.eras.innerHTML = '';
+    ERAS.forEach((era, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'era'; b.textContent = era.name;
+      b.setAttribute('aria-pressed', String(i === state.era));
+      b.addEventListener('click', () => { state.era = i; savePrefs(); renderEras(); loadShelf(true); });
+      els.eras.appendChild(b);
+    });
+  }
+  SORTS.forEach((s, i) => {
+    const o = document.createElement('option'); o.value = i; o.textContent = s.name; els.sort.appendChild(o);
+  });
+  els.sort.value = state.sort;
+  GENRES.forEach((g, i) => {
+    const o = document.createElement('option'); o.value = i; o.textContent = g.name; els.genre.appendChild(o);
+  });
+  els.genre.value = state.genre;
+  els.genre.addEventListener('change', () => { state.genre = +els.genre.value; savePrefs(); loadShelf(true); });
+  els.sort.addEventListener('change', () => { state.sort = +els.sort.value; savePrefs(); loadShelf(true); });
+
+  // Fetch tapes from the Internet Archive
+  let loadToken = 0;
+  async function loadShelf(reset) {
+    if (!reset && state.loading) return;
+    const token = ++loadToken;
+    state.loading = true;
+    els.filters.hidden = !!state.special;
+    if (reset) {
+      state.items = []; state.page = 1; state.total = 0; state.selected = -1;
+      renderList(); renderDetail();
+      els.spines.innerHTML = '<div class="skel"></div>'.repeat(8);
+      setStatus('Pulling tapes off the shelf…');
+    }
+    if (state.special) { await loadSpecial(token); if (token === loadToken) state.loading = false; return; }
+    const era = ERAS[state.era];
+    const base = state.query ? 'Search: ' + state.query : SHELVES[state.shelf].name;
+    const genre = GENRES[state.genre];
+    els.shelfName.textContent = [base, genre.q ? genre.name : '', era.from ? era.name : ''].filter(Boolean).join(', ');
+
+    const cols = state.query ? SHELVES.map(s => s.id).join(' OR ') : SHELVES[state.shelf].id;
+    let q = 'collection:(' + cols + ') AND mediatype:(movies)';
+    if (era.from) q += ' AND year:[' + era.from + ' TO ' + era.to + ']';
+    if (genre.q) q += ' AND ' + genre.q;
+    const shelf = state.query ? null : SHELVES[state.shelf];
+    const filmsOnly = !!(shelf && shelf.films);
+    if (filmsOnly) q += FILM_ONLY_Q;
+    if (state.query) q = '(' + safeQuery(state.query) + ') AND ' + q;
+    if (reset) state.dropped = 0;
+    const pageUrl = () => {
+      const p = new URLSearchParams({ q, rows: ROWS, page: state.page, output: 'json' });
+      ['identifier', 'title', 'year', 'date', 'description', 'runtime', 'collection', 'subject'].forEach(f => p.append('fl[]', f));
+      p.append('sort[]', SORTS[state.sort].sort);
+      if (SORTS[state.sort].id !== 'popular') p.append('sort[]', 'downloads desc');
+      return 'https://archive.org/advancedsearch.php?' + p.toString();
+    };
+
+    try {
+      // Fetch a page; if the sweep removed most of it, fetch up to three more so the shelf isn't bare
+      const target = state.items.length + 20;
+      let found = 0;
+      for (let tries = 0; tries < 4; tries++) {
+        const r = await fetch(pageUrl());
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        const j = await r.json();
+        if (token !== loadToken) return;
+        found = j.response.numFound || 0;
+        const seen = new Set(state.items.map(i => i.identifier));
+        const docs = j.response.docs;
+        docs.forEach(d => {
+          if (seen.has(d.identifier)) return;
+          if (filmsOnly && looksLikeTv(d, shelf)) { state.dropped++; return; }
+          state.items.push(d);
+        });
+        state.page++;
+        if (!filmsOnly || state.items.length >= target || docs.length < ROWS) break;
+      }
+      state.total = Math.max(state.items.length, found - (state.dropped || 0));
+      setStatus(state.items.length ? '' :
+        (era.from || genre.q) ? 'No tapes on this shelf match those filters. Try another genre or era.' :
+        state.query ? 'No tapes match that search. Try a shorter title or another word.' :
+        'This shelf is empty right now. Pick another shelf.');
+    } catch (e) {
+      if (token !== loadToken) return;
+      setStatus('The shelf didn’t load. Check your internet connection, then choose the shelf again.', true);
+    }
+    state.loading = false;
+    renderList();
+    if (reset && state.items.length) select(0, false);
+  }
+
+  // My tapes: saved tapes, watch history, and tapes you stopped partway through
+  const KEPT = 'rewind-rentals-kept', HIST = 'rewind-rentals-history';
+  const getList = k => { const v = store.get(k); return Array.isArray(v) ? v : []; };
+  const compact = d => ({
+    identifier: d.identifier, title: clean(first(d.title)) || d.identifier, year: yearOf(d),
+    runtime: clean(first(d.runtime)), collection: [].concat(d.collection || []), description: clean(d.description).slice(0, 700)
+  });
+  const isKept = id => getList(KEPT).some(x => x.identifier === id);
+  function toggleKept(d) {
+    let list = getList(KEPT);
+    if (list.some(x => x.identifier === d.identifier)) list = list.filter(x => x.identifier !== d.identifier);
+    else list.unshift(compact(d));
+    store.set(KEPT, list.slice(0, 200));
+  }
+  function addHistory(d) {
+    const list = getList(HIST).filter(x => x.identifier !== d.identifier);
+    list.unshift(Object.assign(compact(d), { watched: Date.now() }));
+    store.set(HIST, list.slice(0, 60));
+  }
+  function buildMine() {
+    const hist = getList(HIST), kept = getList(KEPT);
+    const paused = [];
+    hist.forEach(x => { const sv = store.get(posKey(x.identifier)); if (sv && sv.t > 5) paused.push(Object.assign({}, x, { section: 'Carry on watching', resumeAt: sv.t })); });
+    const shown = new Set(paused.map(x => x.identifier));
+    const saved = kept.filter(x => !shown.has(x.identifier)).map(x => Object.assign({}, x, { section: 'Saved tapes' }));
+    saved.forEach(x => shown.add(x.identifier));
+    const recent = hist.filter(x => !shown.has(x.identifier)).slice(0, 24).map(x => Object.assign({}, x, { section: 'Recently watched' }));
+    return paused.concat(saved, recent);
+  }
+  const inMine = id => isKept(id) || getList(HIST).some(x => x.identifier === id);
+  function removeFromMine(id) {
+    store.set(KEPT, getList(KEPT).filter(x => x.identifier !== id));
+    store.set(HIST, getList(HIST).filter(x => x.identifier !== id));
+    store.del(posKey(id));
+  }
+
+  // Staff picks: chosen by hand, found on the Archive by title at load time
+  const STAFF_PICKS = [
+    { id: 'ABearForAllSeasonsDVD', title: 'Bear in the Big Blue House: A Bear for All Seasons', by: 'Nieve', note: 'My childhood favourite. Bear, Tutter, Pip and Pop, Ojo and Treelo, and that goodbye song to Luna. Pure comfort telly.' },
+    { title: 'Night of the Living Dead', by: 'Dee', note: 'Still the scariest thing on the shelf. Lights off, phone unplugged, no excuses.' },
+    { title: 'His Girl Friday', by: 'Marv', note: 'The fastest-talking film ever made. I rent it to myself about once a month.' },
+    { title: 'Detour', by: 'Kev', note: 'Shot in under a week for pocket change and it’s still meaner than anything new. Short, nasty, perfect.' },
+    { title: 'Charade', by: 'Marv', note: 'Cary Grant, Audrey Hepburn, Paris and a twist every ten minutes. The ideal Friday night tape.' },
+    { title: 'The General', by: 'Ellie', note: 'Buster Keaton doing his own stunts on a real moving train. Jaw on the floor, every time.' },
+    { title: 'Nosferatu', by: 'Dee', note: 'The original vampire. No dialogue, just shadows and that slow creep up the stairs.' },
+    { title: 'D.O.A.', q: 'title:(D.O.A.) AND year:[1949 TO 1951]', by: 'Kev', note: 'A man walks into a police station to report his own murder. Best opening on the noir shelf.' },
+    { title: 'Plan 9 from Outer Space', by: 'Kev', note: 'Famous for being the worst film ever made, which makes it one of the best to watch with mates.' },
+    { title: 'The Little Shop of Horrors', by: 'Ellie', note: 'Before the musical there was this. Spot a very young Jack Nicholson in the dentist’s chair.' },
+    { title: 'The Mechanical Monsters', q: 'title:(superman AND mechanical)', by: 'Marv', note: 'The old Superman cartoons still look incredible. Art deco robots robbing banks, what more do you want?' },
+    { title: 'Duck and Cover', by: 'Dee', note: 'A 1950s safety film where a cartoon turtle teaches kids to survive the bomb. Unhinged and unmissable.' }
+  ];
+  let picksPromise = null;
+  function loadPicks() {
+    if (picksPromise) return picksPromise;
+    const cols = SHELVES.map(sh => sh.id).join(' OR ');
+    picksPromise = Promise.all(STAFF_PICKS.map(pick => {
+      const q = pick.id ? 'identifier:(' + pick.id + ')' : (pick.q || 'title:("' + pick.title + '")') + ' AND mediatype:(movies) AND collection:(' + cols + ')';
+      const p = new URLSearchParams({ q, rows: 1, page: 1, output: 'json' });
+      ['identifier', 'title', 'year', 'date', 'description', 'runtime', 'collection'].forEach(f => p.append('fl[]', f));
+      p.append('sort[]', 'downloads desc');
+      return fetch('https://archive.org/advancedsearch.php?' + p.toString())
+        .then(r => r.ok ? r.json() : null)
+        .then(j => { const d = j && j.response && j.response.docs[0]; return d ? Object.assign(d, { pick }) : null; })
+        .catch(() => null);
+    })).then(list => { const out = list.filter(Boolean); if (!out.length) picksPromise = null; return out; });
+    return picksPromise;
+  }
+
+  async function loadSpecial(token) {
+    if (state.special === 'mine') {
+      els.shelfName.textContent = 'My tapes';
+      state.items = buildMine(); state.total = state.items.length;
+      setStatus(state.items.length ? '' : 'Nothing here yet. Press Add to My tapes on any tape, or start watching one, and it’ll appear here.');
+    } else {
+      els.shelfName.textContent = 'Staff picks';
+      setStatus('Asking the staff for their favourites…');
+      const picks = await loadPicks();
+      if (token !== loadToken) return;
+      state.items = picks; state.total = picks.length;
+      setStatus(picks.length ? '' : 'The staff picks didn’t load. Check your internet connection, then choose Staff picks again.', !picks.length);
+    }
+    renderList();
+    if (state.items.length) select(0, false);
+  }
+
+  // Shelf of spines
+  function renderList() {
+    els.spines.innerHTML = '';
+    els.count.textContent = state.total ? state.total.toLocaleString() + (state.total === 1 ? ' tape' : ' tapes') : '';
+    let lastSection = null;
+    const prevCount = els.spines._count || 0;
+    els.spines._count = state.items.length;
+    state.items.forEach((d, i) => {
+      if (d.section && d.section !== lastSection) {
+        const h = document.createElement('h3'); h.className = 'shelf-section'; h.textContent = d.section;
+        els.spines.appendChild(h); lastSection = d.section;
+      }
+      const [bg, fg] = SPINE_COLOURS[hash(d.identifier) % SPINE_COLOURS.length];
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'spine'; b.dataset.index = i;
+      b.style.setProperty('--bg', bg); b.style.setProperty('--fg', fg);
+      b.setAttribute('aria-pressed', String(i === state.selected));
+
+      const tag = document.createElement('span'); tag.className = 'spine-tag';
+      tag.innerHTML = '<span>RR Video</span>';
+      const t2 = document.createElement('span'); t2.textContent = d.pick ? 'Staff pick' : d.resumeAt ? 'Stopped at ' + fmt(d.resumeAt) : shelfFor(d).tag; tag.appendChild(t2);
+      if (d.pick) b.classList.add('is-pick');
+      if (d.resumeAt) b.classList.add('is-resume');
+      if (i >= prevCount) { b.classList.add('new'); b.style.setProperty('--i', i - prevCount); b.addEventListener('animationend', () => b.classList.remove('new'), { once: true }); }
+
+      const title = document.createElement('span'); title.className = 'spine-title';
+      title.textContent = clean(first(d.title)) || d.identifier;
+
+      const y = yearOf(d);
+      const year = document.createElement('span'); year.className = 'spine-year';
+      year.textContent = y ? '’' + y.slice(2) : '??';
+      if (y) year.title = y;
+
+      b.append(tag, title, year);
+      // A first click selects; clicking the selected tape (or OK on the remote) plays it
+      b.addEventListener('pointerdown', () => { b._was = state.selected === i; });
+      b.addEventListener('click', () => {
+        const was = b._was === undefined ? state.selected === i : b._was;
+        b._was = undefined;
+        if (was && !window.matchMedia('(max-width: 820px)').matches) insertTape(false);
+        else select(i, false, true);
+      });
+      b.addEventListener('focus', () => { if (state.selected !== i) select(i, false); });
+      els.spines.appendChild(b);
+    });
+    if (state.items.length && state.items.length < state.total) {
+      const more = document.createElement('button');
+      more.type = 'button'; more.className = 'more'; more.textContent = 'Load more tapes';
+      more.addEventListener('click', () => loadShelf(false));
+      els.spines.appendChild(more);
+    }
+  }
+
+  function select(i, focus, fromClick) {
+    state.selected = i;
+    els.spines.querySelectorAll('.spine').forEach(s => s.setAttribute('aria-pressed', String(+s.dataset.index === i)));
+    renderDetail();
+    const sp = els.spines.querySelector('.spine[data-index="' + i + '"]');
+    if (focus && sp) sp.focus();
+    if (fromClick && window.matchMedia('(max-width: 820px)').matches) {
+      $('detail').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    }
+  }
+
+  // Detail panel
+  function renderDetail() {
+    const d = state.items[state.selected];
+    els.dMsg.textContent = '';
+    if (!d) { els.card.hidden = true; els.empty.hidden = false; return; }
+    els.empty.hidden = true; els.card.hidden = false;
+    if (els.card._id !== d.identifier) {
+      els.card._id = d.identifier;
+      els.card.classList.remove('swap'); void els.card.offsetWidth; els.card.classList.add('swap');
+    }
+    els.cover.src = 'https://archive.org/services/img/' + encodeURIComponent(d.identifier);
+    els.cover.alt = 'Cover image for ' + (clean(first(d.title)) || d.identifier);
+    els.dTitle.textContent = clean(first(d.title)) || d.identifier;
+
+    els.pills.innerHTML = '';
+    const pills = [yearOf(d), clean(first(d.runtime)), shelfFor(d).name].filter(Boolean);
+    pills.forEach(p => { const s = document.createElement('span'); s.className = 'pill'; s.textContent = p; els.pills.appendChild(s); });
+
+    els.desc.textContent = clean(d.description) || 'No description on the box for this one.';
+    els.staffCard.hidden = !d.pick;
+    if (d.pick) { els.scBy.textContent = d.pick.by + ' at the counter says:'; els.scNote.textContent = d.pick.note; }
+    const mine = inMine(d.identifier);
+    els.keepBtn.textContent = mine ? 'Remove from My tapes' : 'Add to My tapes';
+    els.keepBtn.setAttribute('aria-pressed', String(mine));
+    els.iaLink.href = 'https://archive.org/details/' + encodeURIComponent(d.identifier);
+
+    const saved = store.get(posKey(d.identifier));
+    if (saved && saved.t > 5) {
+      els.playBtn.textContent = 'Resume from ' + fmt(saved.t);
+      els.restartBtn.hidden = false;
+    } else {
+      els.playBtn.textContent = 'Play tape';
+      els.restartBtn.hidden = true;
+    }
+  }
+
+  // Find a playable video file in the item
+  async function findVideo(id) {
+    const r = await fetch('https://archive.org/metadata/' + encodeURIComponent(id));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const files = (j.files || []).filter(f => /\.(mp4|m4v|webm|ogv)$/i.test(f.name));
+    const rank = f => {
+      const fm = String(f.format || '').toLowerCase();
+      if (fm === 'h.264') return 0;
+      if (fm === 'mpeg4') return 1;
+      if (fm.includes('512kb')) return 2;
+      if (fm.includes('h.264')) return 3;
+      if (/\.mp4$/i.test(f.name)) return 4;
+      if (/\.webm$/i.test(f.name)) return 5;
+      return 6;
+    };
+    files.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+    if (!files.length) return null;
+    return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + files[0].name.split('/').map(encodeURIComponent).join('/');
+  }
+
+  // Rewind screen then player
+  let rwTimer = null;
+  async function insertTape(fromStart) {
+    const d = state.items[state.selected];
+    if (!d) return;
+    sfx.clunk();
+    addHistory(d);
+    const saved = store.get(posKey(d.identifier));
+    const startAt = (!fromStart && saved && saved.t > 5) ? saved.t : 0;
+    if (fromStart) store.del(posKey(d.identifier));
+
+    els.rwTitle.textContent = clean(first(d.title)) || d.identifier;
+    els.rwHead.textContent = startAt ? 'Cueing tape…' : 'Someone forgot to rewind…';
+    els.rwSub.textContent = startAt ? 'Finding your spot at ' + fmt(startAt) : 'Fast-reversing to the beginning ◀◀';
+    els.rewind.hidden = false;
+    if (!reduceMotion) setTimeout(() => sfx.rewind(2.2), 200);
+
+    let counter = startAt ? 0 : 3000 + hash(d.identifier) % 4000;
+    const target = startAt;
+    els.rwCounter.textContent = fmt(counter);
+    clearInterval(rwTimer);
+    rwTimer = setInterval(() => {
+      counter += (target - counter) * 0.12;
+      if (Math.abs(target - counter) < 1) counter = target;
+      els.rwCounter.textContent = fmt(counter);
+    }, 50);
+
+    const wait = new Promise(r => setTimeout(r, reduceMotion ? 400 : 2600));
+    let src = null;
+    try { src = await findVideo(d.identifier); } catch (e) { src = null; }
+    await wait;
+    clearInterval(rwTimer);
+    els.rewind.hidden = true;
+
+    if (!src) {
+      els.dMsg.textContent = 'This tape has no playable video file, or the Internet Archive didn’t answer. Pick another tape.';
+      els.playBtn.focus();
+      return;
+    }
+    openPlayer(d, src, startAt);
+  }
+
+  // Player
+  let idleTimer = null, osdTimer = null, lastSave = 0;
+  function osd(text, transient) {
+    clearTimeout(osdTimer);
+    els.osdState.textContent = text;
+    if (transient) osdTimer = setTimeout(() => osd(els.video.paused ? 'Pause ❚❚' : 'Play ▶'), 1200);
+  }
+  function wake() {
+    els.player.classList.remove('idle');
+    clearTimeout(idleTimer);
+    idleTimer = setTimeout(() => { if (!els.video.paused) els.player.classList.add('idle'); }, 3500);
+  }
+  function tracking() {
+    sfx.static();
+    els.noise.classList.remove('on'); void els.noise.offsetWidth; els.noise.classList.add('on');
+  }
+
+  function openPlayer(d, src, startAt) {
+    state.playing = d;
+    els.pTitle.textContent = clean(first(d.title)) || d.identifier;
+    els.pError.hidden = true;
+    els.player.hidden = false;
+    crtOn(els.player);
+    document.body.style.overflow = 'hidden';
+    els.video.src = src;
+    els.video.addEventListener('loadedmetadata', () => {
+      if (startAt) els.video.currentTime = startAt;
+      els.dur.textContent = fmt(els.video.duration);
+    }, { once: true });
+    els.video.play().catch(() => osd('Pause ❚❚'));
+    tracking();
+    wake();
+    els.toggleBtn.focus();
+  }
+
+  function savePos(force) {
+    const d = state.playing, v = els.video;
+    if (!d || !isFinite(v.duration)) return;
+    if (!force && Date.now() - lastSave < 5000) return;
+    lastSave = Date.now();
+    if (v.currentTime > 5 && v.currentTime < v.duration - 20) store.set(posKey(d.identifier), { t: v.currentTime });
+    else if (v.currentTime >= v.duration - 20) store.del(posKey(d.identifier));
+  }
+
+  function stopPlayer() {
+    savePos(true);
+    const v = els.video;
+    v.pause(); v.removeAttribute('src'); v.load();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    els.player.hidden = true;
+    crtOff();
+    document.body.style.overflow = '';
+    state.playing = null;
+    renderDetail();
+    els.playBtn.focus();
+  }
+
+  function toggle() { const v = els.video; if (v.paused) v.play().catch(() => {}); else v.pause(); }
+  function seek(delta) {
+    const v = els.video;
+    if (!isFinite(v.duration)) return;
+    v.currentTime = Math.min(Math.max(0, v.currentTime + delta), v.duration - 1);
+    osd(delta < 0 ? '◀◀ Rew' : 'FF ▶▶', true);
+    tracking();
+  }
+
+  els.video.addEventListener('play', () => { osd('Play ▶'); els.toggleBtn.textContent = 'Pause'; wake(); });
+  els.video.addEventListener('pause', () => { osd('Pause ❚❚'); els.toggleBtn.textContent = 'Play'; wake(); savePos(true); });
+  els.video.addEventListener('waiting', () => osd('Tracking…'));
+  els.video.addEventListener('playing', () => osd('Play ▶'));
+  els.video.addEventListener('timeupdate', () => {
+    const v = els.video;
+    els.osdTime.textContent = fmt(v.currentTime);
+    if (isFinite(v.duration) && v.duration) els.fill.style.width = (v.currentTime / v.duration * 100) + '%';
+    savePos(false);
+  });
+  els.video.addEventListener('ended', () => { store.del(posKey(state.playing && state.playing.identifier)); osd('Stop ■'); els.player.classList.remove('idle'); });
+  els.video.addEventListener('error', () => {
+    if (els.player.hidden) return;
+    els.pError.textContent = 'This tape won’t play in this browser. Press Stop to go back to the shelf.';
+    els.pError.hidden = false;
+    osd('Stop ■');
+  });
+
+  els.progress.addEventListener('click', e => {
+    const v = els.video, r = els.progress.getBoundingClientRect();
+    if (!isFinite(v.duration)) return;
+    v.currentTime = (e.clientX - r.left) / r.width * v.duration;
+    tracking();
+  });
+  els.ctrls.addEventListener('click', e => {
+    const act = e.target.closest('[data-act]');
+    if (!act) return;
+    wake();
+    switch (act.dataset.act) {
+      case 'toggle': toggle(); break;
+      case 'rew': seek(-30); break;
+      case 'ffwd': seek(30); break;
+      case 'stop': stopPlayer(); break;
+      case 'full':
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else if (els.player.requestFullscreen) els.player.requestFullscreen().catch(() => {});
+        break;
+    }
+  });
+  els.player.addEventListener('mousemove', wake);
+  els.video.addEventListener('click', () => { toggle(); wake(); });
+
+  els.playBtn.addEventListener('click', () => insertTape(false));
+  els.keepBtn.addEventListener('click', () => {
+    const d = state.items[state.selected];
+    if (!d) return;
+    sfx.select();
+    if (!inMine(d.identifier)) { toggleKept(d); renderDetail(); stamp('Added!', true); return; }
+    const title = clean(first(d.title)) || d.identifier;
+    removeFromMine(d.identifier);
+    stamp('Removed', false);
+    if (state.special === 'mine') {
+      // Rebuild the shelf straight away so the tape actually disappears
+      const at = state.selected;
+      state.items = buildMine(); state.total = state.items.length;
+      renderList();
+      if (state.items.length) {
+        select(Math.min(at, state.items.length - 1), true);
+        setStatus('Removed ' + title + ' from My tapes.');
+      } else {
+        state.selected = -1; renderDetail();
+        setStatus('Removed ' + title + '. Nothing left here: press Add to My tapes on any tape, or start watching one.');
+        const t = els.tabs.querySelector('[aria-pressed="true"]'); t && t.focus();
+      }
+    } else {
+      renderDetail();
+      els.dMsg.textContent = '';
+    }
+  });
+  els.restartBtn.addEventListener('click', () => insertTape(true));
+  function stamp(text, good) {
+    const actions = $('actions');
+    const el = document.createElement('span');
+    el.className = 'stamp' + (good ? ' good' : ''); el.textContent = text; el.setAttribute('aria-hidden', 'true');
+    actions.appendChild(el);
+    setTimeout(() => el.remove(), 950);
+  }
+  // CRT effects
+  function crtOn(el) { el.classList.remove('crt-on'); void el.offsetWidth; el.classList.add('crt-on'); }
+  function crtOff() {
+    if (reduceMotion) return;
+    const el = document.createElement('div'); el.className = 'crt-off'; el.setAttribute('aria-hidden', 'true');
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 480);
+  }
+
+  $('searchForm').addEventListener('submit', e => {
+    e.preventDefault();
+    const q = els.q.value.trim();
+    state.special = null;
+    if (!q) { state.query = ''; renderTabs(); loadShelf(true); return; }
+    state.query = q; renderTabs(); loadShelf(true);
+  });
+
+  // Remote control and keyboard: arrows move, Enter selects, Back stops
+  document.addEventListener('keydown', e => {
+    const k = e.key;
+    const active = document.activeElement;
+
+    if (!bootEl.hidden) { e.preventDefault(); sfx.power(); hideBoot(); return; }
+
+    if (!tvEls.tv.hidden) {
+      wakeTv();
+      if (['Escape', 'Backspace', 'BrowserBack', 'GoBack', 'g'].includes(k)) { e.preventDefault(); closeTv(); return; }
+      if (k === 'ArrowUp' || k === 'ChannelUp' || k === 'PageUp') { e.preventDefault(); flip(1); return; }
+      if (k === 'ArrowDown' || k === 'ChannelDown' || k === 'PageDown') { e.preventDefault(); flip(-1); return; }
+      if (/^[0-9]$/.test(k)) { e.preventDefault(); digit(k); return; }
+      if ((k === 'Enter' || k === ' ' || k === 'MediaPlayPause') && startAfterTap()) { e.preventDefault(); return; }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') {
+        e.preventDefault();
+        const btns = [...tvEls.ctrls.querySelectorAll('button')];
+        const idx = btns.indexOf(active);
+        const next = btns[idx === -1 ? 0 : Math.min(Math.max(0, idx + (k === 'ArrowLeft' ? -1 : 1)), btns.length - 1)];
+        next.focus();
+      }
+      return;
+    }
+
+    if (!els.player.hidden) {
+      wake();
+      if (['Escape', 'Backspace', 'BrowserBack', 'GoBack'].includes(k)) { e.preventDefault(); stopPlayer(); return; }
+      if (k === ' ' || k === 'MediaPlayPause') { e.preventDefault(); toggle(); return; }
+      if (k === 'MediaRewind') { seek(-30); return; }
+      if (k === 'MediaFastForward') { seek(30); return; }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') {
+        const btns = [...els.ctrls.querySelectorAll('button')];
+        const idx = btns.indexOf(active);
+        e.preventDefault();
+        if (idx === -1) { seek(k === 'ArrowLeft' ? -30 : 30); return; }
+        const next = btns[Math.min(Math.max(0, idx + (k === 'ArrowLeft' ? -1 : 1)), btns.length - 1)];
+        next.focus();
+      }
+      return;
+    }
+    if (!els.rewind.hidden) return;
+    if (active === els.q) {
+      if (k === 'ArrowDown') { e.preventDefault(); const t = els.tabs.querySelector('[aria-pressed="true"]') || els.tabs.firstChild; t && t.focus(); }
+      return;
+    }
+    if (active === els.sort || active === els.genre) return;
+
+    if (active && active.classList.contains('era')) {
+      const eras = [...els.eras.children], i = eras.indexOf(active);
+      if (k === 'ArrowRight') { e.preventDefault(); (eras[i + 1] || els.genre).focus(); }
+      else if (k === 'ArrowLeft' && eras[i - 1]) { e.preventDefault(); eras[i - 1].focus(); }
+      else if (k === 'ArrowDown') { e.preventDefault(); const s = els.spines.querySelector('.spine[aria-pressed="true"]') || els.spines.querySelector('.spine'); s && s.focus(); }
+      else if (k === 'ArrowUp') { e.preventDefault(); const t = els.tabs.querySelector('[aria-pressed="true"]') || els.tabs.firstChild; t && t.focus(); }
+      return;
+    }
+
+    if (active && active.classList.contains('spine')) {
+      const i = +active.dataset.index;
+      if (k === 'ArrowDown') { e.preventDefault(); const n = els.spines.querySelector('.spine[data-index="' + (i + 1) + '"]') || els.spines.querySelector('.more'); if (n) n.focus(); }
+      else if (k === 'ArrowUp') { e.preventDefault(); if (i > 0) select(i - 1, true); else { const t = els.eras.querySelector('[aria-pressed="true"]') || els.eras.firstChild; t && t.focus(); } }
+      else if (k === 'ArrowRight') { e.preventDefault(); els.playBtn.focus(); }
+      return;
+    }
+    if (active && active.classList.contains('tab')) {
+      const tabs = [...els.tabs.children], i = tabs.indexOf(active);
+      if (k === 'ArrowRight' && tabs[i + 1]) { e.preventDefault(); tabs[i + 1].focus(); }
+      else if (k === 'ArrowLeft' && tabs[i - 1]) { e.preventDefault(); tabs[i - 1].focus(); }
+      else if (k === 'ArrowDown') { e.preventDefault(); const t = els.eras.querySelector('[aria-pressed="true"]') || els.eras.firstChild; t && t.focus(); }
+      else if (k === 'ArrowUp') { e.preventDefault(); (state.mode === 'tv' ? tvEls.modeTv : tvEls.modeTapes).focus(); }
+      return;
+    }
+    if (active && els.card.contains(active)) {
+      const btns = [...els.card.querySelectorAll('.actions > :not([hidden])')];
+      const i = btns.indexOf(active);
+      if (k === 'ArrowLeft') { e.preventDefault(); const s = els.spines.querySelector('.spine[aria-pressed="true"]'); s && s.focus(); }
+      else if ((k === 'ArrowDown' || k === 'ArrowRight') && btns[i + 1]) { e.preventDefault(); btns[i + 1].focus(); }
+      else if (k === 'ArrowUp' && btns[i - 1]) { e.preventDefault(); btns[i - 1].focus(); }
+      return;
+    }
+    if (active && active.classList.contains('ch-row')) {
+      const i = rows.indexOf(active);
+      if (k === 'ArrowDown' && rows[i + 1]) { e.preventDefault(); rows[i + 1].focus(); }
+      else if (k === 'ArrowUp') { e.preventDefault(); (rows[i - 1] || tvEls.modeTv).focus(); }
+      else if (/^[0-9]$/.test(k)) {
+        const ci = CHANNELS.findIndex(c => String(c.num).startsWith(k));
+        if (ci >= 0) rows[ci].focus();
+      }
+      return;
+    }
+    if (active && active.classList.contains('hdr')) {
+      const hdrs = [...document.querySelectorAll('.hdr')];
+      const i = hdrs.indexOf(active);
+      if (k === 'ArrowRight') { e.preventDefault(); if (hdrs[i + 1]) hdrs[i + 1].focus(); else if (!tvEls.search.hidden) els.q.focus(); }
+      else if (k === 'ArrowLeft' && hdrs[i - 1]) { e.preventDefault(); hdrs[i - 1].focus(); }
+      else if (k === 'ArrowDown') {
+        e.preventDefault();
+        if (state.mode === 'tv') rows[0] && rows[0].focus();
+        else { const t = els.tabs.querySelector('[aria-pressed="true"]') || els.tabs.firstChild; t && t.focus(); }
+      }
+      return;
+    }
+    if (['ArrowDown', 'ArrowUp', 'ArrowLeft', 'ArrowRight'].includes(k)) {
+      if (state.mode === 'tv') { if (rows[0]) { e.preventDefault(); rows[0].focus(); } return; }
+      const s = els.spines.querySelector('.spine[aria-pressed="true"]') || els.spines.querySelector('.spine');
+      if (s) { e.preventDefault(); s.focus(); }
+    }
+  });
+
+  /* Rewind TV: themed channels on a shared 72-hour clock.
+     Each channel shuffles its pool with a fixed seed, so every viewer
+     gets the same schedule and sees the same show at the same moment. */
+  const CHANNELS = [
+    { num: 2,  id: 'toons',     name: 'Toon Town',           kind: 'shorts', q: 'collection:(classic_cartoons)' },
+    { num: 3,  id: 'sailor',    name: 'Popeye and Pals',     kind: 'shorts', q: 'collection:(classic_cartoons) AND title:(popeye OR "betty boop" OR superman OR casper)' },
+    { num: 4,  id: 'matinee',   name: 'Saturday Matinee',    kind: 'movies', films: true, minLength: 40 * 60, q: 'collection:(feature_films) AND year:[1930 TO 1959]' },
+    { num: 5,  id: 'noir',      name: 'Noir After Dark',     kind: 'movies', films: true, q: 'collection:(Film_Noir)' },
+    { num: 6,  id: 'creature',  name: 'Creature Feature',    kind: 'movies', films: true, q: 'collection:(SciFi_Horror)' },
+    { num: 7,  id: 'laughs',    name: 'Laugh Track',         kind: 'movies', films: true, q: 'collection:(Comedy_Films)' },
+    { num: 8,  id: 'silent',    name: 'Silent Picture Show', kind: 'movies', films: true, q: 'collection:(silent_films)' },
+    { num: 9,  id: 'adbreak',   name: 'Ad Break',            kind: 'shorts', q: 'collection:(prelinger) AND (advertising OR commercial OR advertisement)' },
+    { num: 10, id: 'classroom', name: 'Classroom Reel',      kind: 'shorts', q: 'collection:(prelinger) AND (educational OR guidance OR safety)' },
+    { num: 11, id: 'kidstv',    name: 'Kids’ TV Club',       kind: 'episodes', source: 'childrenstelevision' },
+    { num: 12, id: 'japantv',   name: 'Tokyo Late Night',    kind: 'episodes', source: 'miscellaneous-japanese-tv' },
+    { num: 13, id: 'jeopardy',  name: 'Jeopardy!',           kind: 'episodes', source: 'gameshow_jeopardy' },
+    { num: 14, id: 'robotwars', name: 'Robot Wars',          kind: 'episodes', source: 'robot-wars-1998-2018' },
+    { num: 15, id: 'tv80s',     name: '80s Prime Time',      kind: 'episodes', source: 'classic_tv_1980s' },
+    { num: 16, id: 'monsterjam', name: 'Monster Jam',        kind: 'episodes', source: 'classicmonsterjam' },
+    { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'] }
+  ];
+  const CH_COLOURS = ['#ff3d8b', '#38e1e8', '#ffb627', '#f2ead3', '#a98bff', '#7ee08a', '#ff8a3d', '#ffd23f', '#5ab0ff'];
+  const LOOP_S = 72 * 3600, LOOP_MS = LOOP_S * 1000;
+  const EPOCH = Date.UTC(2026, 0, 1);
+  const schedPromises = {}, schedules = {}, failed = new Set(), srcCache = new Map();
+  const tv = { ch: 0, token: 0, cur: null, next: null, digits: '', digitTimer: null, idleTimer: null, tick: null, needsTap: false };
+  const T = id => document.getElementById(id);
+  const tvEls = {
+    tv: T('tv'), video: T('tvVideo'), noise: T('tvNoise'), ch: T('tvCh'), clock: T('tvClock'), standby: T('standby'),
+    sbSub: T('sbSub'), bnNum: T('bnNum'), bnName: T('bnName'), bnTitle: T('bnTitle'), bnTime: T('bnTime'), bnFill: T('bnFill'),
+    bnNext: T('bnNext'), ctrls: T('tvCtrls'), guide: T('guide'), grid: T('guideGrid'), gClock: T('guideClock'),
+    gStatus: T('guideStatus'), ident: T('ident'), idNum: T('idNum'), idName: T('idName'), tapesView: T('tapesView'), modeTapes: T('modeTapes'), modeTv: T('modeTv'), search: T('searchForm')
+  };
+
+  const fmtClock = ts => new Date(ts).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  const chNum = ch => String(ch.num).padStart(2, '0');
+
+  function rng(seed) {
+    let a = seed >>> 0;
+    return () => {
+      a = (a + 0x6D2B79F5) >>> 0;
+      let t = a;
+      t = Math.imul(t ^ (t >>> 15), t | 1);
+      t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+  function shuffle(arr, r) {
+    for (let i = arr.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+    return arr;
+  }
+
+  // The Archive's runtime field is free text: "00:06:46", "6:46", "72 min", "1 hr 12 min"...
+  function parseRuntime(s, kind) {
+    if (!s) return 0;
+    s = String(s).toLowerCase().trim();
+    let m;
+    if ((m = s.match(/^(\d+):(\d{1,2}):(\d{1,2})/))) return +m[1] * 3600 + +m[2] * 60 + +m[3];
+    if ((m = s.match(/^(\d+):(\d{1,2})(?!\d)/))) {
+      let v = +m[1] * 60 + +m[2];
+      if (kind === 'movies' && v < 180) v = +m[1] * 3600 + +m[2] * 60;
+      return v;
+    }
+    let total = 0, found = false;
+    if ((m = s.match(/(\d+(?:\.\d+)?)\s*(hours|hour|hrs|hr|h)(?![a-z])/))) { total += parseFloat(m[1]) * 3600; found = true; }
+    if ((m = s.match(/(\d+(?:\.\d+)?)\s*(minutes|minute|mins|min|m)(?![a-z])/))) { total += parseFloat(m[1]) * 60; found = true; }
+    if ((m = s.match(/(\d+(?:\.\d+)?)\s*(seconds|second|secs|sec|s)(?![a-z])/))) { total += parseFloat(m[1]); found = true; }
+    if (found) return Math.round(total);
+    if ((m = s.match(/^(\d+(?:\.\d+)?)$/))) { const v = parseFloat(m[1]); return v < 300 ? Math.round(v * 60) : Math.round(v); }
+    return 0;
+  }
+
+  async function fetchPool(q, kind, keepDoc) {
+    const p = new URLSearchParams({ q: q + ' AND mediatype:(movies)', rows: 400, page: 1, output: 'json' });
+    ['identifier', 'title', 'runtime', 'year', 'date'].concat(keepDoc ? ['description', 'collection', 'subject'] : []).forEach(f => p.append('fl[]', f));
+    p.append('sort[]', 'identifier asc');
+    const r = await fetch('https://archive.org/advancedsearch.php?' + p.toString());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    return j.response.docs.map(d => Object.assign({
+      id: d.identifier, title: clean(first(d.title)) || d.identifier, year: yearOf(d), dur: parseRuntime(first(d.runtime), kind)
+    }, keepDoc ? { doc: d } : {}));
+  }
+
+  // A channel source can be an Archive collection (many items) or one item holding many episodes
+  async function fetchSource(ch) {
+    if (ch.q && ch.films) {
+      const all = await fetchPool(ch.q + FILM_ONLY_Q, ch.kind, true);
+      return all.filter(x => !looksLikeTv(x.doc, ch) && !(ch.minLength && x.dur && x.dur < ch.minLength));
+    }
+    if (ch.q) return fetchPool(ch.q, ch.kind);
+    if (ch.search) {
+      const p = new URLSearchParams({ q: 'title:(' + ch.search + ') OR subject:(' + ch.search + ')', rows: 40, page: 1, output: 'json' });
+      p.append('fl[]', 'identifier'); p.append('sort[]', 'identifier asc');
+      let found = [];
+      try {
+        const r = await fetch('https://archive.org/advancedsearch.php?' + p.toString());
+        if (r.ok) found = (await r.json()).response.docs.map(d => d.identifier);
+      } catch (e) {}
+      const ids = [...new Set([].concat(ch.seed || [], found))].slice(0, 30);
+      const lists = await Promise.all(ids.map(id =>
+        fetch('https://archive.org/metadata/' + encodeURIComponent(id))
+          .then(r => r.ok ? r.json() : null)
+          .then(j => j ? episodesFromItem(id, j, ch.kind) : [])
+          .catch(() => [])));
+      return [].concat(...lists);
+    }
+    const r = await fetch('https://archive.org/metadata/' + encodeURIComponent(ch.source));
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const j = await r.json();
+    const md = j.metadata || {};
+    if (md.mediatype === 'collection') return fetchPool('collection:(' + ch.source + ')', ch.kind);
+    return episodesFromItem(ch.source, j, ch.kind);
+  }
+  function episodesFromItem(id, j, kind) {
+    const vids = (j.files || []).filter(f => /\.(mp4|m4v|webm|ogv)$/i.test(f.name) && !/\(part \d+\)/i.test(f.name));
+    const byBase = new Map();
+    vids.forEach(f => {
+      const base = f.name.replace(/\.[^.\/]+$/, '');
+      const score = /\.mp4$/i.test(f.name) ? 0 : 1;
+      const cur = byBase.get(base);
+      if (!cur || score < cur.score) byBase.set(base, { f, score });
+    });
+    const md = j.metadata || {};
+    const year = yearOf(md);
+    const itemTitle = clean(first(md.title)) || id;
+    const files = [...byBase.values()].map(({ f }) => f)
+      .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
+    let n = 0;
+    return files.map(f => {
+      const len = parseFloat(f.length);
+      const dur = isFinite(len) && /^[\d.]+$/.test(String(f.length)) ? Math.round(len) : parseRuntime(f.length, kind);
+      return { f, dur };
+    })
+    // On an episodes channel, anything under 4 minutes is a DVD menu, trailer or bumper
+    .filter(x => !(kind === 'episodes' && x.dur && x.dur < 240))
+    .map(({ f, dur }) => {
+      const name = f.name.split('/').pop().replace(/\.[^.]+$/, '');
+      const generic = /^(dvd[ _-]?video|vts[ _\d-]*|title|track|video|movie|clip)[ _-]?\d*$/i.test(name);
+      n++;
+      return {
+        id: id + '::' + f.name, item: id, file: f.name, year, dur,
+        title: generic ? itemTitle + ', episode ' + n : name
+      };
+    });
+  }
+
+  // Old adverts used in the breaks between shows on every other channel
+  let adPoolPromise = null;
+  function getAdPool() {
+    if (!adPoolPromise) {
+      const ch = CHANNELS.find(c => c.id === 'adbreak');
+      adPoolPromise = fetchPool(ch.q, 'shorts')
+        .then(all => all.filter(x => x.dur >= 10 && x.dur <= 240))
+        .catch(() => { adPoolPromise = null; return []; });
+    }
+    return adPoolPromise;
+  }
+
+  async function buildSchedule(ci) {
+    const ch = CHANNELS[ci];
+    const withBreaks = ch.id !== 'adbreak';
+    const [all, ads] = await Promise.all([fetchSource(ch), withBreaks ? getAdPool() : Promise.resolve([])]);
+    let pool = all.filter(x => x.dur >= 60 && x.dur <= 4 * 3600);
+    if (pool.length < 15) {
+      const guess = ch.kind === 'movies' ? 75 * 60 : ch.kind === 'episodes' ? 25 * 60 : 8 * 60;
+      pool = pool.concat(all.filter(x => !x.dur).map(x => Object.assign({}, x, { dur: guess })));
+    }
+    const slots = [];
+    if (!pool.length) return { slots };
+    let t = 0, pass = 0, lastId = null, shown = 0;
+    const push = (type, item, dur) => {
+      dur = Math.min(dur, LOOP_S - t);
+      if (dur <= 0) return;
+      slots.push({ type, item, start: t, dur });
+      t += dur;
+    };
+    while (t < LOOP_S) {
+      const order = shuffle(pool.slice(), rng(hash(ch.id + ':' + pass)));
+      if (order.length > 1 && order[0].id === lastId) [order[0], order[1]] = [order[1], order[0]];
+      for (const it of order) {
+        if (t >= LOOP_S) break;
+        if (withBreaks && shown > 0) {
+          // A break: one or two old adverts, then the channel ident
+          const r = rng(hash(ch.id + ':break:' + shown));
+          const count = ads.length ? 1 + Math.floor(r() * 2) : 0;
+          for (let a = 0; a < count; a++) { const ad = ads[Math.floor(r() * ads.length)]; push('ad', ad, ad.dur); }
+          push('ident', null, 8);
+        }
+        push('show', it, it.dur);
+        lastId = it.id; shown++;
+      }
+      pass++;
+    }
+    return { slots };
+  }
+
+  function getSchedule(ci) {
+    if (schedPromises[ci]) return schedPromises[ci];
+    schedPromises[ci] = buildSchedule(ci)
+      .then(sch => { failed.delete(ci); return (schedules[ci] = sch); })
+      .catch(err => { delete schedPromises[ci]; failed.add(ci); throw err; });
+    return schedPromises[ci];
+  }
+
+  function findSlot(slots, t) {
+    let lo = 0, hi = slots.length - 1;
+    while (lo < hi) { const mid = (lo + hi + 1) >> 1; if (slots[mid].start <= t) lo = mid; else hi = mid - 1; }
+    return lo;
+  }
+  // What's on now and after, as real clock times
+  function upcoming(sched, now, count) {
+    const elapsed = now - EPOCH;
+    const loopIdx = Math.floor(elapsed / LOOP_MS);
+    let base = EPOCH + loopIdx * LOOP_MS;
+    let i = findSlot(sched.slots, (now - base) / 1000);
+    const out = [];
+    while (out.length < count) {
+      const s = sched.slots[i];
+      out.push({ type: s.type || 'show', item: s.item, startTs: base + s.start * 1000, endTs: base + (s.start + s.dur) * 1000 });
+      i++;
+      if (i >= sched.slots.length) { i = 0; base += LOOP_MS; }
+    }
+    return out;
+  }
+
+  // For the guide and banner: the current entry (a show, or a whole break), then shows only
+  function guideEntries(sched, now, count) {
+    const raw = upcoming(sched, now, count * 6 + 6);
+    const out = [];
+    for (let i = 0; i < raw.length && out.length < count; i++) {
+      const r = raw[i];
+      if (r.type === 'show') out.push(r);
+      else if (!out.length) {
+        let end = r.endTs;
+        while (raw[i + 1] && raw[i + 1].type !== 'show') { i++; end = raw[i].endTs; }
+        out.push({ type: 'break', item: { title: 'Commercial break' }, startTs: r.startTs, endTs: end });
+      }
+    }
+    return out;
+  }
+
+  // Guide
+  const rows = [];
+  let guideTick = null;
+  function buildGuide() {
+    if (rows.length) return;
+    CHANNELS.forEach((ch, ci) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'ch-row'; b.dataset.ci = ci;
+      b.style.setProperty('--chc', CH_COLOURS[ci % CH_COLOURS.length]);
+      b.innerHTML =
+        '<div class="ch-id"><span class="ch-num"></span><span class="ch-name"></span></div>' +
+        '<div class="ch-now"><span class="slot-time"></span><span class="slot-title"></span><span class="mini"><span></span></span></div>' +
+        '<div class="ch-next"><span class="slot-time"></span><span class="slot-title"></span></div>' +
+        '<div class="ch-later"><span class="slot-time"></span><span class="slot-title"></span></div>';
+      b.querySelector('.ch-num').textContent = chNum(ch);
+      b.querySelector('.ch-name').textContent = ch.name;
+      b.addEventListener('click', () => openTv(ci));
+      tvEls.grid.appendChild(b);
+      rows.push(b);
+    });
+  }
+  function renderGuide() {
+    const now = Date.now();
+    tvEls.gClock.textContent = fmtClock(now);
+    rows.forEach((row, ci) => {
+      const cells = row.querySelectorAll('.ch-now, .ch-next, .ch-later');
+      const set = (i, time, title) => {
+        cells[i].querySelector('.slot-time').textContent = time;
+        cells[i].querySelector('.slot-title').textContent = title;
+      };
+      const s = schedules[ci];
+      if (!s || !s.slots.length) {
+        set(0, '', failed.has(ci) ? 'No signal' : (s ? 'Off the air' : 'Tuning…'));
+        set(1, '', ''); set(2, '', '');
+        return;
+      }
+      const up = guideEntries(s, now, 3);
+      up.forEach((u, i) => set(i, i === 0 ? fmtClock(u.startTs) + ' to ' + fmtClock(u.endTs) : fmtClock(u.startTs), u.item.title));
+      row.querySelector('.mini span').style.width = Math.min(100, (now - up[0].startTs) / (up[0].endTs - up[0].startTs) * 100) + '%';
+      row.setAttribute('aria-label', 'Channel ' + CHANNELS[ci].num + ', ' + CHANNELS[ci].name + '. On now: ' + up[0].item.title);
+    });
+  }
+  function openGuide() {
+    buildGuide();
+    tvEls.gStatus.textContent = ''; tvEls.gStatus.classList.remove('err');
+    renderGuide();
+    CHANNELS.forEach((c, ci) => getSchedule(ci).then(renderGuide).catch(() => {
+      tvEls.gStatus.textContent = 'Some channels have no signal. Check your internet connection, then press Watch TV again.';
+      tvEls.gStatus.classList.add('err');
+      renderGuide();
+    }));
+    clearInterval(guideTick);
+    guideTick = setInterval(renderGuide, 1000);
+  }
+
+  function setMode(m) {
+    state.mode = m; savePrefs();
+    tvEls.tapesView.hidden = m !== 'tapes';
+    tvEls.search.hidden = m !== 'tapes';
+    tvEls.guide.hidden = m !== 'tv';
+    tvEls.modeTapes.setAttribute('aria-pressed', String(m === 'tapes'));
+    tvEls.modeTv.setAttribute('aria-pressed', String(m === 'tv'));
+    if (m === 'tv') openGuide(); else clearInterval(guideTick);
+  }
+  tvEls.modeTapes.addEventListener('click', () => setMode('tapes'));
+  tvEls.modeTv.addEventListener('click', () => setMode('tv'));
+
+  // TV screen
+  function wakeTv() {
+    tvEls.tv.classList.remove('idle');
+    clearTimeout(tv.idleTimer);
+    tv.idleTimer = setTimeout(() => tvEls.tv.classList.add('idle'), 5000);
+  }
+  function tvStatic() { tvEls.noise.classList.remove('on'); void tvEls.noise.offsetWidth; tvEls.noise.classList.add('on'); }
+  function standBy(msg) {
+    tvEls.standby.hidden = false;
+    tvEls.sbSub.textContent = msg || (tv.next ? 'Coming up at ' + fmtClock(tv.next.startTs) + ': ' + tv.next.item.title : '');
+  }
+
+  function openTv(ci) {
+    clearInterval(guideTick);
+    tvEls.tv.hidden = false;
+    crtOn(tvEls.tv);
+    document.body.style.overflow = 'hidden';
+    clearInterval(tv.tick);
+    tv.tick = setInterval(tvTick, 1000);
+    tvEls.clock.textContent = fmtClock(Date.now());
+    tune(ci);
+    const b = tvEls.ctrls.querySelector('button'); b && b.focus();
+  }
+  function closeTv() {
+    tv.token++; tv.cur = null;
+    clearInterval(tv.tick);
+    const v = tvEls.video; v.pause(); v.removeAttribute('src'); v.load();
+    if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    tvEls.tv.hidden = true;
+    crtOff();
+    hideIdent();
+    document.body.style.overflow = '';
+    openGuide();
+    rows[tv.ch] && rows[tv.ch].focus();
+  }
+  function tune(ci) {
+    tv.ch = (ci + CHANNELS.length) % CHANNELS.length;
+    const ch = CHANNELS[tv.ch];
+    tvEls.video.pause();
+    tvEls.ch.textContent = 'CH ' + chNum(ch);
+    tvEls.bnNum.textContent = chNum(ch);
+    tvEls.bnName.textContent = ch.name;
+    tvEls.bnTitle.textContent = 'Tuning…';
+    tvEls.bnTime.textContent = ''; tvEls.bnNext.textContent = ''; tvEls.bnFill.style.width = '0';
+    tv.next = null; tv.curEntry = null;
+    hideIdent();
+    standBy('Tuning in to ' + ch.name + '…');
+    tvStatic(); sfx.static(); wakeTv();
+    tvEls.video.classList.remove('roll'); void tvEls.video.offsetWidth; tvEls.video.classList.add('roll');
+    playCurrent();
+  }
+  const flip = d => tune(tv.ch + d);
+
+  async function playCurrent() {
+    const token = ++tv.token;
+    tv.cur = null;
+    let sched = null;
+    try { sched = await getSchedule(tv.ch); } catch (e) { sched = null; }
+    if (token !== tv.token) return;
+    if (!sched) { hideIdent(); standBy('No signal on this channel. Flip to another one, or check your connection.'); tvEls.bnTitle.textContent = 'No signal'; return; }
+    if (!sched.slots.length) { hideIdent(); standBy('This channel is off the air. Flip to another one.'); tvEls.bnTitle.textContent = 'Off the air'; return; }
+
+    const nowTs = Date.now();
+    const [slot] = upcoming(sched, nowTs, 1);
+    const entries = guideEntries(sched, nowTs, 2);
+    tv.cur = slot; tv.curEntry = entries[0]; tv.next = entries[1];
+    updateBanner();
+
+    const v = tvEls.video;
+    if (slot.type === 'ident') {
+      v.pause(); v.removeAttribute('src'); v.load();
+      tvEls.standby.hidden = true;
+      showIdent();
+      return;
+    }
+    hideIdent();
+
+    let src = slot.item.file
+      ? 'https://archive.org/download/' + encodeURIComponent(slot.item.item) + '/' + slot.item.file.split('/').map(encodeURIComponent).join('/')
+      : srcCache.get(slot.item.id);
+    if (src === undefined) {
+      try { src = await findVideo(slot.item.id); } catch (e) { src = null; }
+      srcCache.set(slot.item.id, src);
+    }
+    if (token !== tv.token) return;
+    if (!src) { standBy(); return; }
+
+    v.src = src;
+    v.onloadedmetadata = () => {
+      if (token !== tv.token) return;
+      const offset = (Date.now() - slot.startTs) / 1000;
+      if (isFinite(v.duration) && offset >= v.duration - 1) { v.pause(); standBy(); return; }
+      v.currentTime = Math.max(0, offset);
+    };
+    v.play().catch(() => {
+      if (token !== tv.token) return;
+      tv.needsTap = true;
+      standBy('Press OK or tap the screen to start watching.');
+    });
+    tvStatic();
+  }
+
+  function showIdent() {
+    const ch = CHANNELS[tv.ch];
+    tvEls.ident.style.setProperty('--chc', CH_COLOURS[tv.ch % CH_COLOURS.length]);
+    tvEls.idNum.textContent = chNum(ch);
+    tvEls.idName.textContent = ch.name;
+    tvEls.ident.hidden = false;
+    tvEls.ident.classList.remove('go'); void tvEls.ident.offsetWidth; tvEls.ident.classList.add('go');
+    sfx.jingle();
+  }
+  function hideIdent() { tvEls.ident.hidden = true; }
+
+  function updateBanner() {
+    const c = tv.curEntry, now = Date.now();
+    if (!c) return;
+    if (c.type === 'break') {
+      tvEls.bnTitle.textContent = 'Commercial break';
+      tvEls.bnTime.textContent = 'Back at ' + fmtClock(c.endTs);
+    } else {
+      tvEls.bnTitle.textContent = c.item.title + (c.item.year ? ' (' + c.item.year + ')' : '');
+      tvEls.bnTime.textContent = fmtClock(c.startTs) + ' to ' + fmtClock(c.endTs) + ', ' + Math.max(1, Math.ceil((c.endTs - now) / 60000)) + ' min left';
+    }
+    tvEls.bnFill.style.width = Math.min(100, (now - c.startTs) / (c.endTs - c.startTs) * 100) + '%';
+    tvEls.bnNext.textContent = tv.next ? (c.type === 'break' ? 'Coming up: ' : 'Next at ' + fmtClock(tv.next.startTs) + ': ') + tv.next.item.title : '';
+  }
+  function tvTick() {
+    tvEls.clock.textContent = fmtClock(Date.now());
+    if (tv.cur && Date.now() >= tv.cur.endTs) { playCurrent(); return; }
+    updateBanner();
+  }
+  function startAfterTap() {
+    if (!tv.needsTap) return false;
+    tv.needsTap = false;
+    tvEls.video.play().catch(() => {});
+    return true;
+  }
+  function digit(d) {
+    clearTimeout(tv.digitTimer);
+    tv.digits = (tv.digits + d).slice(-2);
+    tvEls.ch.textContent = 'CH ' + tv.digits.padEnd(2, '-');
+    tv.digitTimer = setTimeout(() => {
+      const n = parseInt(tv.digits, 10); tv.digits = '';
+      const ci = CHANNELS.findIndex(c => c.num === n);
+      if (ci >= 0) tune(ci); else tvEls.ch.textContent = 'CH ' + chNum(CHANNELS[tv.ch]);
+    }, 1400);
+  }
+
+  tvEls.video.addEventListener('playing', () => { tvEls.standby.hidden = true; });
+  tvEls.video.addEventListener('ended', () => standBy());
+  tvEls.video.addEventListener('error', () => { if (!tvEls.tv.hidden && tvEls.video.getAttribute('src')) standBy(); });
+  tvEls.tv.addEventListener('mousemove', wakeTv);
+  tvEls.tv.addEventListener('click', e => { wakeTv(); if (!e.target.closest('.ctrls')) startAfterTap(); });
+  tvEls.ctrls.addEventListener('click', e => {
+    const a = e.target.closest('[data-act]');
+    if (!a) return;
+    switch (a.dataset.act) {
+      case 'up': flip(1); break;
+      case 'down': flip(-1); break;
+      case 'guide': closeTv(); break;
+      case 'full':
+        if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+        else if (tvEls.tv.requestFullscreen) tvEls.tv.requestFullscreen().catch(() => {});
+        break;
+    }
+  });
+
+  window.addEventListener('beforeunload', () => savePos(true));
+
+  renderTabs();
+  renderEras();
+  loadShelf(true);
+  setMode(state.mode);
+
+  // Boot screen: shows on start, any button skips it
+  const bootEl = $('boot');
+  let bootTimer = null;
+  function hideBoot() {
+    if (bootEl.hidden) return;
+    clearTimeout(bootTimer);
+    bootEl.classList.add('off');
+    setTimeout(() => {
+      bootEl.hidden = true;
+      if (state.mode === 'tv') { rows[0] && rows[0].focus(); }
+      else {
+        const s = els.spines.querySelector('.spine[aria-pressed="true"]') || els.tabs.querySelector('[aria-pressed="true"]');
+        s && s.focus({ preventScroll: true });
+      }
+    }, reduceMotion ? 0 : 350);
+  }
+  bootEl.addEventListener('click', () => { sfx.power(); hideBoot(); });
+  bootTimer = setTimeout(hideBoot, reduceMotion ? 800 : 3400);
+
+  /* Running inside the Android TV app: the remote's Back button asks the page first.
+     Returns true if the page handled it (closed the TV, player or boot screen), false to exit the app. */
+  window.rrBack = () => {
+    if (!bootEl.hidden) { hideBoot(); return true; }
+    if (!tvEls.tv.hidden) { closeTv(); return true; }
+    if (!els.player.hidden) { stopPlayer(); return true; }
+    if (!els.rewind.hidden) return true;
+    return false;
+  };
+  if (/RewindRentalsApp/.test(navigator.userAgent)) {
+    // The app is already full screen and can't open outside links, so hide those controls
+    els.iaLink.hidden = true;
+    document.querySelectorAll('[data-act="full"]').forEach(b => { b.hidden = true; });
+  }
+})();
+</script>
+</body>
+</html>
