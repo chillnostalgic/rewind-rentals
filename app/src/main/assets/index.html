@@ -609,6 +609,16 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     return blockedText(itemText(d));
   }
 
+  // Shows and characters to look for, for shelves and channels that aren't a tidy Archive collection
+  const HENSON_TERMS = ['Fraggle Rock', 'Fraggles', 'Muppet Show', 'Muppets', 'Muppet Babies', 'Jim Henson', 'Henson Hour', 'The Storyteller Henson',
+    'Dog City', 'Bear in the Big Blue House', 'Sesame Street', 'Emmet Otter', 'Mopatop'];
+  const DISNEY_TERMS = ['Walt Disney Cartoon', 'Walt Disney Presents', 'Silly Symphony', 'Silly Symphonies', 'Mickey Mouse', 'Donald Duck',
+    'DuckTales', 'Duck Tales', 'Chip n Dale Rescue Rangers', 'Rescue Rangers', 'TaleSpin', 'Darkwing Duck', 'Gummi Bears', 'Goof Troop',
+    'Gargoyles 1994', 'Quack Pack', 'Timon and Pumbaa', 'House of Mouse', 'Disney Afternoon', 'Mickey Mouse Club', 'Wonderful World of Disney'];
+  // Keep out holiday vlogs, reviews, reactions and podcasts that mention the shows
+  const NOT_THE_SHOW = ' AND NOT (vlog OR vlogs OR disneyland OR "disney world" OR "theme park" OR trip OR haul OR review OR reaction OR podcast OR unboxing OR "let\'s play" OR gameplay OR walkthrough)';
+  const termsQ = terms => '((' + terms.map(t => 'title:("' + t + '") OR subject:("' + t + '")').join(' OR ') + ')' + NOT_THE_SHOW + ')';
+
   const SHELVES = [
     { id: 'feature_films',    name: 'Feature films',          tag: 'Feature', films: true, minLength: 40 * 60 },
     { id: 'Film_Noir',        name: 'Film noir',              tag: 'Noir',    films: true },
@@ -616,8 +626,12 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { id: 'Comedy_Films',     name: 'Comedy',                 tag: 'Comedy',  films: true },
     { id: 'classic_cartoons', name: 'Cartoons',               tag: 'Toons' },
     { id: 'silent_films',     name: 'Silent era',             tag: 'Silent',  films: true },
-    { id: 'prelinger',        name: 'Old adverts and oddities', tag: 'Prelinger' }
-  ];
+    { id: 'prelinger',        name: 'Old adverts and oddities', tag: 'Prelinger' },
+    { id: 'henson',           name: 'Muppets and Henson',     tag: 'Henson', homeOnly: true, q: termsQ(HENSON_TERMS) },
+    { id: 'disney',           name: 'Classic Disney',         tag: 'Disney', homeOnly: true, q: termsQ(DISNEY_TERMS) }
+  ].filter(sh => CONFIG.edition === 'home' || !sh.homeOnly);
+  // Shelves that are real Archive collections (search and staff picks look across these)
+  const COLLECTION_SHELVES = SHELVES.filter(sh => !sh.q);
   const SPINE_COLOURS = [
     ['#1b2f6b','#ffd23f'], ['#7a1030','#f2ead3'], ['#0f4d3f','#ffb627'], ['#f2ead3','#1a1033'],
     ['#2a1450','#38e1e8'], ['#c2410c','#fff7e6'], ['#111018','#ff3d8b'], ['#e7c52b','#1b1035']
@@ -987,8 +1001,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const genre = GENRES[state.genre];
     els.shelfName.textContent = [base, genre.q ? genre.name : '', era.from ? era.name : ''].filter(Boolean).join(', ');
 
-    const cols = state.query ? SHELVES.map(s => s.id).join(' OR ') : SHELVES[state.shelf].id;
-    let q = 'collection:(' + cols + ') AND mediatype:(movies)' + NSFW_Q;
+    const cols = state.query ? COLLECTION_SHELVES.map(s => s.id).join(' OR ') : SHELVES[state.shelf].id;
+    let q = (!state.query && SHELVES[state.shelf].q ? SHELVES[state.shelf].q : 'collection:(' + cols + ')') + ' AND mediatype:(movies)' + NSFW_Q;
     if (era.from) q += ' AND year:[' + era.from + ' TO ' + era.to + ']';
     if (genre.q) q += ' AND ' + genre.q;
     const shelf = state.query ? null : SHELVES[state.shelf];
@@ -1124,7 +1138,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   let picksPromise = null;
   function loadPicks() {
     if (picksPromise) return picksPromise;
-    const cols = SHELVES.map(sh => sh.id).join(' OR ');
+    const cols = COLLECTION_SHELVES.map(sh => sh.id).join(' OR ');
     picksPromise = Promise.all(STAFF_PICKS.map(pick => {
       const q = pick.id ? 'identifier:(' + pick.id + ')' : (pick.q || 'title:("' + pick.title + '")') + ' AND mediatype:(movies) AND collection:(' + cols + ')' + NSFW_Q;
       const p = new URLSearchParams({ q, rows: 1, page: 1, output: 'json' });
@@ -1727,7 +1741,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { num: 14, id: 'robotwars', name: 'Robot Wars',          kind: 'episodes', source: 'robot-wars-1998-2018' },
     { num: 15, id: 'tv80s',     name: '80s Prime Time',      kind: 'episodes', source: 'classic_tv_1980s' },
     { num: 16, id: 'monsterjam', name: 'Monster Jam',        kind: 'episodes', source: 'classicmonsterjam' },
-    { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'] }
+    { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'] },
+    { num: 18, id: 'henson',    name: 'The Henson Hour',     kind: 'episodes', searchQ: termsQ(HENSON_TERMS), maxItems: 60 },
+    { num: 19, id: 'disney',    name: 'Disney Afternoon',    kind: 'episodes', searchQ: termsQ(DISNEY_TERMS), maxItems: 60 }
   ].filter(c => CONFIG.edition === 'home' || c.num <= 10);
   const CH_COLOURS = ['#ff3d8b', '#38e1e8', '#ffb627', '#f2ead3', '#a98bff', '#7ee08a', '#ff8a3d', '#ffd23f', '#5ab0ff'];
   const LOOP_S = 72 * 3600, LOOP_MS = LOOP_S * 1000;
@@ -1799,15 +1815,15 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       return all.filter(x => !looksLikeTv(x.doc, ch) && !(ch.minLength && x.dur && x.dur < ch.minLength));
     }
     if (ch.q) return fetchPool(ch.q, ch.kind);
-    if (ch.search) {
-      const p = new URLSearchParams({ q: '(title:(' + ch.search + ') OR subject:(' + ch.search + '))' + NSFW_Q, rows: 40, page: 1, output: 'json' });
+    if (ch.search || ch.searchQ) {
+      const p = new URLSearchParams({ q: (ch.searchQ || '(title:(' + ch.search + ') OR subject:(' + ch.search + '))') + ' AND mediatype:(movies)' + NSFW_Q, rows: ch.maxItems || 40, page: 1, output: 'json' });
       p.append('fl[]', 'identifier'); p.append('sort[]', 'identifier asc');
       let found = [];
       try {
         const r = await fetch('https://archive.org/advancedsearch.php?' + p.toString());
         if (r.ok) found = (await r.json()).response.docs.map(d => d.identifier);
       } catch (e) {}
-      const ids = [...new Set([].concat(ch.seed || [], found))].slice(0, 30);
+      const ids = [...new Set([].concat(ch.seed || [], found))].slice(0, ch.maxItems || 30);
       const lists = await Promise.all(ids.map(id =>
         fetch('https://archive.org/metadata/' + encodeURIComponent(id))
           .then(r => r.ok ? r.json() : null)
