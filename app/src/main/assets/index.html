@@ -444,12 +444,43 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 }
 @media (max-width:820px){
   .store{grid-template-columns:1fr}
-  .detail{order:-1}
-  .spines{max-height:none;overflow:visible}
-  .cover{max-height:220px}
+  .spines{max-height:none;overflow:visible;padding-right:20px}
   .spine{grid-template-columns:62px minmax(0,1fr) auto}
   .spine::after{display:none}
+  html,body{overflow-x:hidden;max-width:100%}
+  .app{overflow-x:clip;padding-left:14px;padding-right:14px}
+  .top{gap:10px}
+  .logo{font-size:34px}
+  .modes{margin-right:0}
+  .hdr-tools{flex-wrap:wrap;gap:6px}
+  .tip-btn,.sound-btn,.mode{padding:6px 10px;white-space:nowrap}
+  .vcr-clock{font-size:24px;padding:3px 8px}
+  .search{flex:1 1 100%;min-width:0}
+  .selects{gap:10px}
+  .sort select{max-width:150px}
+  /* The box: a sheet that slides up from the bottom when you tap a tape */
+  .detail{position:fixed;left:0;right:0;bottom:0;z-index:40;max-height:88vh;overflow-y:auto;perspective:none;
+    border-radius:18px 18px 0 0;border-width:2px 0 0;background:var(--panel);
+    padding:14px 18px calc(22px + env(safe-area-inset-bottom,0px));
+    transform:translateY(105%);transition:transform .32s cubic-bezier(.2,1,.3,1)}
+  body.sheet-open .detail{transform:none;box-shadow:0 -20px 60px rgba(0,0,0,.65)}
+  body.sheet-open .sheet-backdrop{display:block}
+  body.sheet-open{overflow:hidden}
+  .detail .sheet-close{display:flex}
+  .cover{transform:none;max-height:210px}
+  .detail:hover .cover{transform:none}
+  .desc{max-height:none;overflow:visible}
+  .actions .btn{flex:1 1 auto;justify-content:center}
 }
+/* A phone held sideways: let the whole page scroll rather than a tiny list */
+@media (min-width:821px) and (max-height:520px){
+  html:not(.tv-ui) .spines{max-height:none;overflow:visible}
+  html:not(.tv-ui) .cover{max-height:42vh}
+}
+.sheet-backdrop{display:none;position:fixed;inset:0;z-index:39;background:rgba(7,3,19,.62)}
+.sheet-close{display:none;align-items:center;justify-content:center;gap:10px;width:100%;margin:0 0 10px;padding:6px;border:0;background:transparent;color:var(--muted);font-weight:600;cursor:pointer}
+.sheet-close::before{content:"";width:44px;height:5px;border-radius:3px;background:var(--edge)}
+@media (prefers-reduced-motion:reduce){.detail{transition:none}}
 @media (prefers-reduced-motion:reduce){
   .reel,.boot-brand,.boot-time,.vcr-clock.blink,.ident.go .id-num,.ident.go .id-name{animation:none}
   .boot{transition:none}
@@ -502,6 +533,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     </section>
 
     <aside class="detail" id="detail">
+      <button class="sheet-close" id="sheetClose" type="button">Close</button>
       <p class="empty" id="empty">Pick a tape from the shelf.</p>
       <div class="card" id="card" hidden>
         <div class="cover"><img id="cover" alt=""></div>
@@ -521,6 +553,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       </div>
     </aside>
   </main>
+  <div class="sheet-backdrop" id="sheetBackdrop"></div>
   </div>
 
   <section class="guide" id="guide" hidden aria-label="TV guide">
@@ -615,7 +648,12 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 <script>
 (() => {
   // TV mode: inside the Android TV app (or add ?tv=1 to the address to try it on a computer)
-  const IS_TV = /RewindRentalsApp/.test(navigator.userAgent) || /[?&]tv=1\b/.test(location.search);
+  const IN_APP = /RewindRentalsApp/.test(navigator.userAgent);
+  const HAS_TOUCH = (navigator.maxTouchPoints || 0) > 0;
+  const IS_TV = /RewindTV/.test(navigator.userAgent) || /[?&]tv=1\b/.test(location.search) ||
+    (IN_APP && !/RewindPhone/.test(navigator.userAgent) && !HAS_TOUCH);
+  // On a phone, the app turns the screen sideways while something is playing, and back afterwards
+  const setLandscape = on => { try { if (window.RewindApp && window.RewindApp.setLandscape) window.RewindApp.setLandscape(!!on); } catch (e) {} };
   if (IS_TV) document.documentElement.classList.add('tv-ui');
   // Shelves map to Internet Archive collections of public domain film.
   /* ===== Settings you can change ===== */
@@ -1147,6 +1185,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     els.filters.hidden = !!state.special;
     if (reset) {
       state.items = []; state.page = 1; state.total = 0; state.selected = -1; state.keyMap = new Map();
+      closeSheet();
       renderList(); renderDetail();
       els.spines.innerHTML = '<div class="skel"></div>'.repeat(8);
       setStatus('Pulling tapes off the shelf…');
@@ -1403,10 +1442,14 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     renderDetail();
     const sp = els.spines.querySelector('.spine[data-index="' + i + '"]');
     if (focus && sp) sp.focus();
-    if (fromClick && window.matchMedia('(max-width: 820px)').matches) {
-      $('detail').scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
-    }
+    if (fromClick && isPhone()) openSheet();
   }
+  // Phone: the tape's box slides up over the shelf
+  const isPhone = () => !IS_TV && window.matchMedia('(max-width: 820px)').matches;
+  function openSheet() { document.body.classList.add('sheet-open'); $('detail').scrollTop = 0; }
+  function closeSheet() { document.body.classList.remove('sheet-open'); }
+  $('sheetClose').addEventListener('click', closeSheet);
+  $('sheetBackdrop').addEventListener('click', closeSheet);
 
   // Detail panel
   function renderDetail() {
@@ -1582,6 +1625,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     els.pError.hidden = true;
     els.player.hidden = false;
     crtOn(els.player);
+    setLandscape(true);
     document.body.style.overflow = 'hidden';
     els.video.src = src;
     els.video.addEventListener('loadedmetadata', () => {
@@ -1609,6 +1653,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     v.pause(); v.removeAttribute('src'); v.load();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     els.player.hidden = true;
+    setLandscape(false);
     crtOff();
     document.body.style.overflow = '';
     const finished = state.playing;
@@ -1994,16 +2039,16 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { num: 5,  id: 'noir',      name: 'Noir After Dark',     kind: 'movies', films: true, q: 'collection:(Film_Noir)' },
     { num: 6,  id: 'creature',  name: 'Creature Feature',    kind: 'movies', films: true, q: 'collection:(SciFi_Horror)' },
     { num: 7,  id: 'laughs',    name: 'Laugh Track',         kind: 'movies', films: true, q: 'collection:(Comedy_Films)' },
-    { num: 8,  id: 'silent',    name: 'Silent Picture Show', kind: 'movies', films: true, q: 'collection:(silent_films)' },
+    { num: 8,  id: 'silent',    name: 'Silent Picture Show', kind: 'movies', films: true, anyLanguage: true, q: 'collection:(silent_films)' },
     { num: 9,  id: 'adbreak',   name: 'Ad Break',            kind: 'shorts', q: 'collection:(prelinger) AND (advertising OR commercial OR advertisement)' },
     { num: 10, id: 'classroom', name: 'Classroom Reel',      kind: 'shorts', q: 'collection:(prelinger) AND (educational OR guidance OR safety)' },
     { num: 11, id: 'kidstv',    name: 'Kids’ TV Club',       kind: 'episodes', source: 'childrenstelevision' },
-    { num: 12, id: 'japantv',   name: 'Tokyo Late Night',    kind: 'episodes', source: 'miscellaneous-japanese-tv' },
+    { num: 12, id: 'japantv',   name: 'Tokyo Late Night',    kind: 'episodes', source: 'miscellaneous-japanese-tv', anyLanguage: true },
     { num: 13, id: 'jeopardy',  name: 'Jeopardy!',           kind: 'episodes', source: 'gameshow_jeopardy' },
     { num: 14, id: 'robotwars', name: 'Robot Wars',          kind: 'episodes', source: 'robot-wars-1998-2018' },
     { num: 15, id: 'tv80s',     name: '80s Prime Time',      kind: 'episodes', source: 'classic_tv_1980s' },
     { num: 16, id: 'monsterjam', name: 'Monster Jam',        kind: 'episodes', source: 'classicmonsterjam' },
-    { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'] },
+    { num: 17, id: 'bigblue',   name: 'The Big Blue House',  kind: 'episodes', search: '"Bear in the Big Blue House"', seed: ['ABearForAllSeasonsDVD'], maxItems: 80 },
     { num: 18, id: 'henson',    name: 'The Henson Hour',     kind: 'episodes', searchQ: termsQ(HENSON_TERMS), terms: HENSON_TERMS, maxItems: 60 },
     { num: 19, id: 'disney',    name: 'Disney Afternoon',    kind: 'episodes', searchQ: termsQ(DISNEY_TERMS), terms: DISNEY_TERMS, maxItems: 60 }
   ].filter(c => CONFIG.edition === 'home' || c.num <= 10);
@@ -2060,12 +2105,13 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
   async function fetchPool(q, kind, keepDoc) {
     const p = new URLSearchParams({ q: q + ' AND mediatype:(movies)' + NSFW_Q, rows: 400, page: 1, output: 'json' });
-    ['identifier', 'title', 'runtime', 'year', 'date', 'description', 'collection', 'subject', 'creator', 'uploader'].forEach(f => p.append('fl[]', f));
+    ['identifier', 'title', 'runtime', 'year', 'date', 'description', 'collection', 'subject', 'creator', 'uploader', 'language'].forEach(f => p.append('fl[]', f));
     p.append('sort[]', 'identifier asc');
     const r = await fetch('https://archive.org/advancedsearch.php?' + p.toString());
     if (!r.ok) throw new Error('HTTP ' + r.status);
     const j = await r.json();
     return j.response.docs.filter(d => !isBlocked(d)).map(d => Object.assign({
+      foreign: looksForeign(d),
       id: d.identifier, title: tidyTitle(clean(first(d.title)) || d.identifier, yearOf(d)).title, year: yearOf(d), dur: parseRuntime(first(d.runtime), kind)
     }, keepDoc ? { doc: d } : {}));
   }
@@ -2094,6 +2140,22 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   }
   const NOT_A_SHOW = /\b(vlog|vlogs|review|reviews|reaction|podcast|unboxing|let'?s play|gameplay|walkthrough|haul|trip report|theme park|disneyland|disney world)\b/i;
 
+  /* English only on the TV channels (except ones marked anyLanguage). Looks at the upload's language setting,
+     foreign alphabets in the title, and tell-tale words in titles and file names. */
+  const FOREIGN_SCRIPT = /[\u0400-\u04FF\u0590-\u05FF\u0600-\u06FF\u0900-\u097F\u0E00-\u0E7F\u3040-\u30FF\u4E00-\u9FFF\uAC00-\uD7AF]/;
+  const FOREIGN_WORDS = /\b(espa[nñ]ol|spanish|latino|castellano|doblad[oa]|doblaje|sub\s?esp|audio\slatino|russian|rus|русск\w*|portugu[eê]s|dublado|legendado|pt-?br|italiano|italian|deutsch|german|fran[cç]ais|french|vf|polski|polish|t[uü]rk[cç]e|turkish|arabic|hindi|nederlands|dutch|svenska|swedish|magyar|hungarian|greek|hebrew|korean|japanese|chinese|mandarin|cantonese)\b|\b(el|la)\s+oso\b|\bcasa\s+azul\b/i;
+  const ENGLISH_LANG = /^(en|eng|english|en-us|en-gb|en_us|en_gb|american english|british english)$/i;
+  const NO_LANG = /^(|none|und|zxx|mul|no linguistic content|n\/a|unknown)$/i;
+  // wordsInTitle: also treat words like "Spanish" or "latino" in the title as a sign of a dub. Used for the
+  // show-based channels only, so film channels don't lose titles like "The French Connection".
+  function looksForeign(d, extra, wordsInTitle) {
+    const langs = [].concat(d.language || []).join(',').split(/[,;\/]+/).map(x => x.trim()).filter(x => !NO_LANG.test(x));
+    if (langs.length && !langs.some(x => ENGLISH_LANG.test(x))) return true;
+    const title = [first(d.title), d.rawTitle].filter(Boolean).join(' ');
+    if (FOREIGN_SCRIPT.test(title + ' ' + (extra || ''))) return true;
+    return FOREIGN_WORDS.test(extra || '') || (!!wordsInTitle && FOREIGN_WORDS.test(title));
+  }
+
   // A channel source can be an Archive collection (many items) or one item holding many episodes
   async function fetchSource(ch) {
     if (ch.q && ch.films) {
@@ -2107,9 +2169,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       const simple = ch.terms ? '(' + ch.terms.map(t => 'title:("' + t + '")').join(' OR ') + ')' : base;
       const findIds = async q => {
         const p = new URLSearchParams({ q: q + ' AND mediatype:(movies OR software)' + NSFW_Q, rows: ch.maxItems || 40, page: 1, output: 'json' });
-        p.append('fl[]', 'identifier'); p.append('fl[]', 'title'); p.append('sort[]', 'identifier asc');
+        p.append('fl[]', 'identifier'); p.append('fl[]', 'title'); p.append('fl[]', 'language'); p.append('sort[]', 'identifier asc');
         const j = await fetchJson('https://archive.org/advancedsearch.php?' + p.toString());
-        return j.response.docs.filter(d => !NOT_A_SHOW.test(clean(first(d.title)))).map(d => d.identifier);
+        return j.response.docs.filter(d => !NOT_A_SHOW.test(clean(first(d.title))) && (ch.anyLanguage || !looksForeign(d, '', true))).map(d => d.identifier);
       };
       let found = [], searchFailed = false;
       try { found = await findIds(base); } catch (e) { searchFailed = true; }
@@ -2152,6 +2214,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const md = j.metadata || {};
     const year = yearOf(md);
     const itemTitle = clean(first(md.title)) || id;
+    const itemForeign = looksForeign(md, '', true);
     const files = [...byBase.values()].map(({ f }) => f)
       .sort((a, b) => a.name.localeCompare(b.name, undefined, { numeric: true }));
     let n = 0;
@@ -2168,6 +2231,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       n++;
       return {
         id: id + '::' + f.name, item: id, file: f.name, year, dur,
+        foreign: itemForeign || looksForeign({}, f.name.replace(/[._\-\/\[\]()]+/g, ' ')),
         title: generic ? itemTitle + ', episode ' + n : name
       };
     });
@@ -2189,7 +2253,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const ch = CHANNELS[ci];
     const withBreaks = ch.id !== 'adbreak';
     const [all, ads] = await Promise.all([fetchSource(ch), withBreaks ? getAdPool() : Promise.resolve([])]);
-    const allSafe = all.filter(x => !blockedText(x.title + ' ' + String(x.file || '')) && !CONFIG.blockedIds.includes(x.item || x.id));
+    const allSafe = all.filter(x => !blockedText(x.title + ' ' + String(x.file || '')) && !CONFIG.blockedIds.includes(x.item || x.id) && (ch.anyLanguage || !x.foreign));
     let pool = allSafe.filter(x => x.dur >= 60 && x.dur <= 4 * 3600);
     if (ch.kind !== 'episodes') {
       const seenKeys = new Set();
@@ -2360,6 +2424,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     clearInterval(guideTick);
     tvEls.tv.hidden = false;
     crtOn(tvEls.tv);
+    setLandscape(true);
     document.body.style.overflow = 'hidden';
     clearInterval(tv.tick);
     tv.tick = setInterval(tvTick, 1000);
@@ -2373,6 +2438,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const v = tvEls.video; v.pause(); v.removeAttribute('src'); v.load();
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     tvEls.tv.hidden = true;
+    setLandscape(false);
     crtOff();
     hideIdent();
     document.body.style.overflow = '';
@@ -2555,6 +2621,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   window.rrBack = () => {
     if (!bootEl.hidden) { hideBoot(); return true; }
     if (!pmEl.hidden) { closePicker(); return true; }
+    if (document.body.classList.contains('sheet-open')) { closeSheet(); return true; }
     if (!tipEl.hidden) { closeTip(); return true; }
     if (!tvEls.tv.hidden) { closeTv(); return true; }
     if (!els.player.hidden) { stopPlayer(); return true; }
