@@ -121,7 +121,7 @@ button,input{font:inherit;color:inherit}
 .card{display:flex;flex-direction:column;gap:12px;min-height:0}
 .cover{aspect-ratio:4/3;background:#0b0618;border-radius:6px;overflow:hidden;border:2px solid var(--edge);max-height:300px}
 .cover img{width:100%;height:100%;object-fit:contain;display:block}
-#dTitle{margin:4px 0 0;font-family:var(--display);font-weight:400;font-size:clamp(22px,2.4vw,32px);line-height:1.1;color:var(--label)}
+#dTitle{overflow-wrap:anywhere;margin:4px 0 0;font-family:var(--display);font-weight:400;font-size:clamp(22px,2.4vw,32px);line-height:1.1;color:var(--label)}
 .pills{display:flex;flex-wrap:wrap;gap:6px}
 .pill{border:1px solid var(--edge);border-radius:999px;padding:1px 10px;font-size:15px;color:var(--muted)}
 .desc{margin:0;color:#ddd5f5;max-width:62ch;max-height:9.5em;overflow:auto;padding-right:6px}
@@ -329,6 +329,62 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 .tip-actions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
 @media (prefers-reduced-motion:reduce){.tip-card{animation:none}}
 
+/* Filter buttons (TV) and the pop-up menu */
+.tv-picks{display:none;gap:10px;flex-wrap:wrap}
+.pick-btn{border:2px solid var(--edge);background:#0d0721;color:var(--ink);border-radius:999px;padding:7px 18px;font-weight:600;cursor:pointer;transition:transform .14s cubic-bezier(.2,1.6,.4,1),box-shadow .2s}
+.pick-btn b{color:var(--cyan);font-weight:600}
+.pick-btn:focus-visible,.pick-btn:hover{border-color:var(--amber);box-shadow:0 0 0 3px var(--amber),0 0 22px rgba(255,182,39,.5);outline:none;transform:translateY(-2px)}
+.pickmenu{position:fixed;inset:0;z-index:86;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(7,3,19,.8)}
+.pm-card{width:min(420px,92vw);max-height:86vh;display:flex;flex-direction:column;background:var(--panel);border:2px solid var(--cyan);border-radius:12px;padding:18px;box-shadow:0 0 40px rgba(56,225,232,.25);animation:tipIn .3s cubic-bezier(.2,1.4,.4,1) both}
+.pm-card h2{margin:0 0 10px;font-family:var(--display);font-weight:400;font-size:20px;color:var(--label)}
+.pm-list{display:flex;flex-direction:column;gap:4px;overflow-y:auto;padding:4px}
+.pm-opt{text-align:left;border:2px solid transparent;background:#160c33;color:var(--ink);border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer}
+.pm-opt[aria-pressed="true"]{color:var(--cyan)}
+.pm-opt[aria-pressed="true"]::after{content:"  ●";color:var(--cyan)}
+.pm-opt:focus-visible,.pm-opt:hover{border-color:var(--amber);box-shadow:0 0 18px rgba(255,182,39,.45);outline:none}
+.pm-hint{margin:10px 0 0;color:var(--muted);font-size:14px}
+
+/* ===== TV mode: built for a remote and a sofa ===== */
+.tv-ui,.tv-ui body{height:100%;overflow:hidden}
+.tv-ui .app{height:100%;max-width:none;padding:10px 22px 10px}
+.tv-ui .top{flex-wrap:nowrap;gap:10px}
+.tv-ui .brand,.tv-ui .modes,.tv-ui .hdr-tools{flex-shrink:0}
+.tv-ui .mode,.tv-ui .tip-btn,.tv-ui .sound-btn{white-space:nowrap}
+.tv-ui .search{min-width:0}
+.tv-ui .search button{display:none}
+.tv-ui .search input{min-width:150px}
+.tv-ui .logo{font-size:34px}
+.tv-ui .sub{font-size:12px}
+.tv-ui .modes{margin-left:4px}
+.tv-ui .mode,.tv-ui .sound-btn,.tv-ui .tip-btn{padding:6px 12px}
+.tv-ui .vcr-clock{font-size:26px;padding:3px 10px}
+.tv-ui .search{flex:1 1 200px}
+.tv-ui .search input{padding:6px 10px}
+.tv-ui .tabs{margin:10px 0 8px;padding:4px 4px 6px}
+.tv-ui .tab{padding:5px 12px}
+.tv-ui .filters{margin:0 0 10px}
+.tv-ui .eras,.tv-ui .selects{display:none}
+.tv-ui .tv-picks{display:flex}
+.tv-ui .store{gap:16px}
+.tv-ui .shelf{padding:10px 12px}
+.tv-ui .shelf-head{margin-bottom:4px}
+.tv-ui .spines{max-height:none;flex:1;min-height:0;scroll-padding:12px 0}
+.tv-ui .spine{min-height:50px}
+.tv-ui .detail{padding:14px 16px;overflow:hidden}
+.tv-ui .card{gap:8px}
+.tv-ui .cover{max-height:24vh;flex-shrink:1}
+.tv-ui #dTitle{font-size:24px}
+.tv-ui .desc{max-height:2.9em;overflow:hidden;font-size:16px;flex-shrink:0}
+.tv-ui .staff-card{padding:10px 14px}
+.tv-ui .sc-note{font-size:16px}
+.tv-ui .btn{padding:8px 14px}
+.tv-ui footer{display:none}
+.tv-ui .guide{overflow-y:auto;margin-top:10px}
+/* Cheaper effects on TV sticks */
+.tv-ui .grid-floor::before{animation:none}
+.tv-ui .cover{transform:none}
+.tv-ui .card.swap .cover{animation:riseIn .3s ease-out both}
+
 /* Mode switch */
 .modes{display:flex;gap:0;border:2px solid var(--edge);border-radius:6px;overflow:hidden;margin-right:auto;margin-left:8px}
 .mode{border:0;background:transparent;color:var(--muted);padding:8px 16px;font-weight:600;cursor:pointer}
@@ -426,6 +482,11 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   <nav class="tabs" id="tabs" aria-label="Shelves"></nav>
 
   <div class="filters">
+    <div class="tv-picks" id="tvPicks">
+      <button class="pick-btn" id="pickEra" type="button"></button>
+      <button class="pick-btn" id="pickGenre" type="button"></button>
+      <button class="pick-btn" id="pickSort" type="button"></button>
+    </div>
     <div class="eras" id="eras" role="group" aria-label="Era"></div>
     <div class="selects">
       <label class="sort">Genre <select id="genre"></select></label>
@@ -479,6 +540,10 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   <p class="boot-brand">Rewind Rentals</p>
   <p class="boot-line">Auto tracking<span class="dots">...</span></p>
   <p class="boot-skip">Press any button to start</p>
+</div>
+
+<div class="pickmenu" id="pickmenu" hidden role="dialog" aria-modal="true" aria-labelledby="pmTitle">
+  <div class="pm-card"><h2 id="pmTitle"></h2><div class="pm-list" id="pmList"></div><p class="pm-hint">OK to choose, Back to cancel</p></div>
 </div>
 
 <div class="tipjar" id="tipjar" hidden role="dialog" aria-modal="true" aria-labelledby="tipTitle">
@@ -549,6 +614,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
 <script>
 (() => {
+  // TV mode: inside the Android TV app (or add ?tv=1 to the address to try it on a computer)
+  const IS_TV = /RewindRentalsApp/.test(navigator.userAgent) || /[?&]tv=1\b/.test(location.search);
+  if (IS_TV) document.documentElement.classList.add('tv-ui');
   // Shelves map to Internet Archive collections of public domain film.
   /* ===== Settings you can change ===== */
   const CONFIG = {
@@ -814,7 +882,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   }
   /* Tidy titles: "Monster Walks, The" -> "The Monster Walks", "Frankenstein 1931" -> "Frankenstein",
      notes like "(English intertitles)" or "- Full Movie" move to a label on the box */
-  const VERSION_WORD = /^(english|french|german|italian|spanish|japanese|subtitles?|subtitled|subbed|dubbed|intertitles?|restored|restoration|remaster\w*|hd|hq|sd|\d{3,4}p|4k|dvd\w*|vhs|blu-?ray|full|length|movie|film|feature|colou?r\w*|b&w|bw|black|white|version|cut|edition|rip|copy|public|domain|pd|uncut|widescreen|fullscreen|silent|sound|original|complete|trailer|reel|reels|tinted|score|soundtrack|new|mp4|avi|ia|archive|better|quality|good|best|upload|enhanced|upscaled?|music|with|and|in|of|the|&|\+|-|\d+)$/i;
+  const VERSION_WORD = /^(english|french|german|italian|spanish|japanese|subtitles?|subtitled|subbed|dubbed|intertitles?|restored|restoration|remaster\w*|hd|hq|sd|\d{3,4}p|4k|dvd\w*|vhs|blu-?ray|full|length|movie|film|feature|colou?r\w*|b&w|bw|black|white|version|cut|edition|rip|copy|public|domain|pd|uncut|widescreen|fullscreen|silent|sound|original|complete|trailer|reel|reels|tinted|score|soundtrack|new|mp4|avi|ia|archive|better|quality|good|best|upload|enhanced|upscaled?|music|videorecording|videocassette|motion|picture|unrated|extended|directors?|theatrical|bd|br|bdrip|brrip|webrip|web|dl|hdrip|hdtv|x26[45]|h26[45]|hevc|aac|ac3|dts|xvid|divx|ntsc|pal|10bit|8bit|with|and|in|of|the|&|\+|-|\d+)$/i;
   const isVersionish = str => {
     const words = String(str).trim().split(/[\s,\/]+/).filter(Boolean);
     return words.length > 0 && words.length <= 7 && words.every(w => VERSION_WORD.test(w.replace(/[^\w&+-]/g, ''))) &&
@@ -824,10 +892,26 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   function titleCase(t) {
     return t.toLowerCase().split(' ').map((w, i) => (i > 0 && SMALL_WORDS.has(w)) ? w : w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
   }
+  // Release-name junk that only ever follows the title and year: "Slumber.Party.Massacre.III.1990.Unrated.720p.BluRay.x264-GROUP"
+  const RELEASE_TAG = /\b(unrated|extended|remastered|proper|repack|limited|internal|\d{3,4}p|4k|uhd|bluray|blu-ray|bdrip|brrip|webrip|web-?dl|hdrip|hdtv|dvdrip|dvdscr|x26[45]|h\.?26[45]|hevc|xvid|divx|aac\d?|ac3|dts|yify|yts|rarbg|10bit)\b/i;
   function tidyTitle(raw, year) {
-    let t = String(raw || '').replace(/_/g, ' ').replace(/\.(mp4|avi|mkv|mov|ogv|mpe?g|m4v)$/i, '').replace(/\s+/g, ' ').trim();
+    let t = String(raw || '').replace(/\.(mp4|avi|mkv|mov|ogv|mpe?g|m4v)$/i, '').trim();
     const notes = [];
     let foundYear = '';
+    // Dots or underscores instead of spaces: a file or release name. Cut it off at the year.
+    // Initials like D.O.A. or L.A. keep their dots
+    t = t.replace(/\b([A-Z])\./g, '$1\u0001');
+    const dots = (t.match(/[._]/g) || []).length, spaces = (t.match(/ /g) || []).length;
+    if (dots >= 2 && dots > spaces) {
+      t = t.replace(/[._]+/g, ' ').trim();
+      const rm = t.match(/^(.+?)\s((?:18|19|20)\d{2})\b(.*)$/);
+      if (rm && rm[1].length > 1) { t = rm[1]; foundYear = rm[2]; }
+      else {
+        const tm2 = t.match(RELEASE_TAG);
+        if (tm2 && tm2.index > 1) t = t.slice(0, tm2.index).trim();
+      }
+    }
+    t = t.replace(/\u0001/g, '.').replace(/_/g, ' ').replace(/\s+/g, ' ').trim();
     // Bracketed extras: years and version notes
     t = t.replace(/\s*[\(\[\{]([^\)\]\}]*)[\)\]\}]/g, (m, inner) => {
       const i = inner.trim();
@@ -842,7 +926,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     // Tech words stuck on the end with no dash: "Detour HD", "Metropolis 1080p Restored"
     let tm;
-    while ((tm = t.match(/^(.*\S)\s+(hd|hq|sd|\d{3,4}p|4k|dvd\s?rip|vhs\s?rip|dvdrip|vhsrip|bluray|restored|remastered|colou?ri[sz]ed|upscaled)$/i)) && tm[1].length > 1) {
+    while ((tm = t.match(/^(.*\S)\s+(hd|hq|sd|\d{3,4}p|4k|dvd\s?rip|vhs\s?rip|dvdrip|vhsrip|bd\s?rip|br\s?rip|web\s?rip|web-?dl|hdtv|bluray|blu-ray|x26[45]|restored|remastered|unrated|colou?ri[sz]ed|upscaled)$/i)) && tm[1].length > 1) {
       notes.unshift(tm[2]); t = tm[1].trim();
     }
     // Cast list tacked on: "Charade - Cary Grant, Audrey Hepburn"
@@ -850,7 +934,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (cm) { notes.push('With ' + cm[2]); t = cm[1].trim(); }
     // Trailing year, if it matches the tape's year (or the tape has none)
     const ym = t.match(/^(.*\S)[\s,\-]+((?:18|19|20)\d{2})$/);
-    if (ym && ym[1].length > 1 && (!year || Math.abs(+ym[2] - +year) <= 1)) { foundYear = foundYear || ym[2]; t = ym[1]; }
+    if (ym && ym[1].length > 1 && (!year || Math.abs(+ym[2] - +year) <= 6)) { foundYear = foundYear || ym[2]; t = ym[1]; }
     // "Monster Walks, The" -> "The Monster Walks"
     const am = t.match(/^(.*\S),\s*(the|a|an)$/i);
     if (am) t = am[2].charAt(0).toUpperCase() + am[2].slice(1).toLowerCase() + ' ' + am[1];
@@ -858,7 +942,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const letters = t.replace(/[^a-zA-Z]/g, '');
     if (letters.length > 3 && (letters === letters.toUpperCase() || letters === letters.toLowerCase())) t = titleCase(t);
     t = t.replace(/[\s\-:,|]+$/, '').trim();
-    return { title: t || String(raw || '').trim(), notes, year: foundYear };
+    // Library catalogue tags aren't worth a label on the box
+    const keep = notes.filter(n => !/^(videorecording|videocassette|motion picture|video recording)$/i.test(n.trim()));
+    return { title: t || String(raw || '').trim(), notes: keep, year: foundYear };
   }
   const titleKey = t => String(t).toLowerCase().replace(/&/g, 'and').replace(/^(the|a|an)\s+/, '').replace(/[^a-z0-9]+/g, ' ').trim();
   function tidyDoc(d) {
@@ -867,7 +953,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const r = tidyTitle(raw, yearOf(d));
     d.rawTitle = raw;
     d.title = r.title;
-    if (!yearOf(d) && r.year) d.year = r.year;
+    // A year in the title is usually the film's real year (the Archive's is often when it was uploaded or put on video)
+    if (r.year && (!yearOf(d) || Math.abs(+r.year - +yearOf(d)) <= 6)) d.year = r.year;
     if (r.notes.length) d.versionNote = r.notes.join(', ');
     d._key = titleKey(r.title);
     d._tidy = true;
@@ -934,6 +1021,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
   // Tabs
   function renderTabs() {
+    const hadFocus = els.tabs.contains(document.activeElement);
     els.tabs.innerHTML = '';
     const add = (label, pressed, onClick) => {
       const b = document.createElement('button');
@@ -947,6 +1035,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     SHELVES.forEach((s, i) => add(s.name, !state.query && !state.special && i === state.shelf, () => {
       state.shelf = i; state.special = null; state.query = ''; els.q.value = ''; renderTabs(); loadShelf(true);
     }));
+    if (hadFocus) { const t = els.tabs.querySelector('[aria-pressed="true"]'); t && t.focus({ preventScroll: true }); }
   }
   function openSpecial(kind) { state.special = kind; state.query = ''; els.q.value = ''; renderTabs(); loadShelf(true); }
 
@@ -985,7 +1074,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       const b = document.createElement('button');
       b.type = 'button'; b.className = 'era'; b.textContent = era.name;
       b.setAttribute('aria-pressed', String(i === state.era));
-      b.addEventListener('click', () => { state.era = i; savePrefs(); renderEras(); loadShelf(true); });
+      b.addEventListener('click', () => { state.era = i; savePrefs(); renderEras(); renderPicks(); loadShelf(true); });
       els.eras.appendChild(b);
     });
   }
@@ -997,8 +1086,57 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const o = document.createElement('option'); o.value = i; o.textContent = g.name; els.genre.appendChild(o);
   });
   els.genre.value = state.genre;
-  els.genre.addEventListener('change', () => { state.genre = +els.genre.value; savePrefs(); loadShelf(true); });
-  els.sort.addEventListener('change', () => { state.sort = +els.sort.value; savePrefs(); loadShelf(true); });
+  els.genre.addEventListener('change', () => { state.genre = +els.genre.value; savePrefs(); renderPicks(); loadShelf(true); });
+  els.sort.addEventListener('change', () => { state.sort = +els.sort.value; savePrefs(); renderPicks(); loadShelf(true); });
+
+  // Pop-up menu for picking an era, genre or sort with the remote
+  const pmEl = $('pickmenu'), pmList = $('pmList');
+  let pmReturn = null;
+  function openPicker(title, labels, current, onPick) {
+    pmReturn = document.activeElement;
+    $('pmTitle').textContent = title;
+    pmList.innerHTML = '';
+    labels.forEach((label, i) => {
+      const b = document.createElement('button');
+      b.type = 'button'; b.className = 'pm-opt'; b.textContent = label;
+      b.setAttribute('aria-pressed', String(i === current));
+      b.addEventListener('click', () => {
+        pmEl.hidden = true;
+        sfx.select();
+        onPick(i);
+        if (pmReturn && document.contains(pmReturn)) pmReturn.focus();
+      });
+      pmList.appendChild(b);
+    });
+    pmEl.hidden = false;
+    (pmList.children[current] || pmList.firstChild).focus();
+  }
+  function closePicker() { pmEl.hidden = true; if (pmReturn && document.contains(pmReturn)) pmReturn.focus(); }
+  pmEl.addEventListener('click', e => { if (e.target === pmEl) closePicker(); });
+
+  const pickEra = $('pickEra'), pickGenre = $('pickGenre'), pickSort = $('pickSort');
+  function renderPicks() {
+    pickEra.innerHTML = 'Era: <b></b> ▾'; pickEra.querySelector('b').textContent = ERAS[state.era].name;
+    pickGenre.innerHTML = 'Genre: <b></b> ▾'; pickGenre.querySelector('b').textContent = GENRES[state.genre].name;
+    pickSort.innerHTML = 'Sort: <b></b> ▾'; pickSort.querySelector('b').textContent = SORTS[state.sort].name;
+  }
+  pickEra.addEventListener('click', () => openPicker('Pick an era', ERAS.map(x => x.name), state.era, i => {
+    state.era = i; savePrefs(); renderEras(); renderPicks(); loadShelf(true);
+  }));
+  pickGenre.addEventListener('click', () => openPicker('Pick a genre', GENRES.map(x => x.name), state.genre, i => {
+    state.genre = i; els.genre.value = i; savePrefs(); renderPicks(); loadShelf(true);
+  }));
+  pickSort.addEventListener('click', () => openPicker('Sort the shelf', SORTS.map(x => x.name), state.sort, i => {
+    state.sort = i; els.sort.value = i; savePrefs(); renderPicks(); loadShelf(true);
+  }));
+  renderPicks();
+  // Where "down" from the shelf tabs (or "up" from the first tape) lands
+  function focusFilters() {
+    const tabs = () => { const t = els.tabs.querySelector('[aria-pressed="true"]') || els.tabs.firstChild; t && t.focus(); };
+    if (els.filters.hidden) return tabs();
+    if (IS_TV) return pickEra.focus();
+    const e2 = els.eras.querySelector('[aria-pressed="true"]') || els.eras.firstChild; e2 && e2.focus();
+  }
 
   // Fetch tapes from the Internet Archive
   let loadToken = 0;
@@ -1311,24 +1449,44 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   }
 
   // Find a playable video file in the item
-  async function findVideo(id) {
-    const r = await fetch('https://archive.org/metadata/' + encodeURIComponent(id));
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json();
-    const files = (j.files || []).filter(f => /\.(mp4|m4v|webm|ogv)$/i.test(f.name));
+  /* Every playable file in an Archive item, best first.
+     The Archive makes its own TV-friendly H.264 copy of most uploads ("h.264" / "h.264 IA").
+     The uploader's original ("MPEG4") can be in a format a TV's player can't show, giving sound but a black screen,
+     so originals go after the Archive's copies. Very high resolutions go last too, as cheap TV sticks struggle with them. */
+  async function findVideos(id) {
+    const j = await fetchJson('https://archive.org/metadata/' + encodeURIComponent(id));
+    return rankVideoFiles(j.files || []).map(f => 'https://archive.org/download/' + encodeURIComponent(id) + '/' + f.name.split('/').map(encodeURIComponent).join('/'));
+  }
+  function rankVideoFiles(files) {
+    const vids = files.filter(f => /\.(mp4|m4v|webm|ogv)$/i.test(f.name));
     const rank = f => {
       const fm = String(f.format || '').toLowerCase();
-      if (fm === 'h.264') return 0;
-      if (fm === 'mpeg4') return 1;
-      if (fm.includes('512kb')) return 2;
-      if (fm.includes('h.264')) return 3;
-      if (/\.mp4$/i.test(f.name)) return 4;
-      if (/\.webm$/i.test(f.name)) return 5;
-      return 6;
+      let r;
+      if (fm === 'h.264 ia') r = 0;
+      else if (fm === 'h.264') r = 1;
+      else if (fm.includes('h.264')) r = 2;
+      else if (fm === 'mpeg4') r = 4;
+      else if (fm.includes('512kb')) r = 5;
+      else if (/\.webm$/i.test(f.name)) r = 6;
+      else if (/\.mp4$/i.test(f.name)) r = 7;
+      else r = 8;
+      if (+f.height > 1080) r += 3;
+      return r;
     };
-    files.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, undefined, { numeric: true }));
-    if (!files.length) return null;
-    return 'https://archive.org/download/' + encodeURIComponent(id) + '/' + files[0].name.split('/').map(encodeURIComponent).join('/');
+    return vids.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+  }
+  async function findVideo(id) { const list = await findVideos(id); return list[0] || null; }
+
+  /* Picture check: some files play their sound but the TV can't draw the picture.
+     A few seconds after playback starts, if there's still no picture, call onFail. */
+  function watchForPicture(video, isCurrent, onFail) {
+    setTimeout(() => {
+      if (!isCurrent() || video.paused && video.currentTime < 1) return;
+      let frames = null;
+      try { const q = video.getVideoPlaybackQuality && video.getVideoPlaybackQuality(); if (q) frames = q.totalVideoFrames; } catch (e) {}
+      const noPicture = !video.videoWidth || !video.videoHeight || (frames === 0 && video.currentTime > 2);
+      if (noPicture) onFail();
+    }, 3500);
   }
 
   // Rewind screen then player
@@ -1361,10 +1519,10 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const wait = new Promise(r => setTimeout(r, reduceMotion ? 400 : 2600));
     let src = null, netTrouble = false;
     const copies = [d.identifier].concat(d.alts || []);
-    let used = 0;
+    let used = 0, files = [];
     for (; used < copies.length; used++) {
-      try { src = await findVideo(copies[used]); } catch (e) { src = null; netTrouble = true; }
-      if (src) break;
+      try { files = await findVideos(copies[used]); } catch (e) { files = []; netTrouble = true; }
+      if (files.length) { src = files[0]; break; }
     }
     await wait;
     clearInterval(rwTimer);
@@ -1379,7 +1537,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       chewedUp(d);
       return;
     }
-    state.spareCopies = copies.slice(used + 1);
+    // Backup plan if the picture won't show: this copy's other files, then the other copies
+    state.playQueue = files.slice(1).map(url => ({ url })).concat(copies.slice(used + 1).map(id => ({ id })));
     openPlayer(d, src, startAt);
   }
 
@@ -1479,22 +1638,49 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     savePos(false);
   });
   els.video.addEventListener('ended', () => { store.del(posKey(state.playing && state.playing.identifier)); osd('Stop ■'); els.player.classList.remove('idle'); });
-  els.video.addEventListener('error', async () => {
-    if (els.player.hidden || !state.playing || !els.video.getAttribute('src')) return;
-    const d = state.playing;
-    // Quietly try the next copy of this film
-    while (state.spareCopies && state.spareCopies.length) {
-      const id = state.spareCopies.shift();
-      osd('Tracking…');
-      let src = null;
-      try { src = await findVideo(id); } catch (e) { src = null; }
-      if (state.playing !== d) return;
-      if (src) { els.video.src = src; els.video.play().catch(() => {}); tracking(); return; }
+  // Next thing to try when a file won't play or shows no picture
+  async function nextSource(d) {
+    while (state.playQueue && state.playQueue.length) {
+      const n = state.playQueue.shift();
+      if (n.url) return n.url;
+      try {
+        const urls = await findVideos(n.id);
+        if (state.playing !== d) return null;
+        if (urls.length) { state.playQueue.unshift(...urls.slice(1).map(url => ({ url }))); return urls[0]; }
+      } catch (e) {}
     }
-    els.pError.textContent = 'This tape is chewed up and won’t play, so it’s come off the shelf. Press Stop to go back.';
+    return null;
+  }
+  async function trySpare(reason) {
+    const d = state.playing;
+    if (!d || els.player.hidden) return;
+    const v = els.video;
+    const at = v.currentTime || 0;
+    osd('Tracking…');
+    const url = await nextSource(d);
+    if (state.playing !== d) return;
+    if (url) {
+      v.src = url;
+      v.addEventListener('loadedmetadata', () => { if (at > 1) v.currentTime = at; }, { once: true });
+      v.play().catch(() => {});
+      tracking();
+      return;
+    }
+    els.pError.textContent = reason === 'picture'
+      ? 'This tape plays sound but your TV can’t show its picture, and no other copy works, so it’s come off the shelf. Press Stop to go back.'
+      : 'This tape is chewed up and won’t play, so it’s come off the shelf. Press Stop to go back.';
     els.pError.hidden = false;
     osd('Stop ■');
     d._chewed = true;
+    v.pause();
+  }
+  els.video.addEventListener('error', () => {
+    if (els.player.hidden || !state.playing || !els.video.getAttribute('src')) return;
+    trySpare('error');
+  });
+  els.video.addEventListener('playing', () => {
+    const d = state.playing, src = els.video.currentSrc;
+    watchForPicture(els.video, () => state.playing === d && els.video.currentSrc === src && !els.player.hidden, () => trySpare('picture'));
   });
 
   els.progress.addEventListener('click', e => {
@@ -1665,6 +1851,18 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
     if (!bootEl.hidden) { e.preventDefault(); sfx.power(); hideBoot(); return; }
 
+    if (!pmEl.hidden) {
+      if (['Escape', 'Backspace', 'BrowserBack', 'GoBack'].includes(k)) { e.preventDefault(); closePicker(); return; }
+      if (k === 'ArrowDown' || k === 'ArrowUp') {
+        e.preventDefault();
+        const opts = [...pmList.children], i = opts.indexOf(active);
+        const n = opts[Math.min(Math.max(0, i + (k === 'ArrowDown' ? 1 : -1)), opts.length - 1)];
+        n && n.focus();
+      }
+      if (k === 'ArrowLeft' || k === 'ArrowRight') e.preventDefault();
+      return;
+    }
+
     if (!tipEl.hidden) {
       if (['Escape', 'Backspace', 'BrowserBack', 'GoBack'].includes(k)) { e.preventDefault(); closeTip(); return; }
       if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(k)) {
@@ -1717,6 +1915,14 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     if (active === els.sort || active === els.genre) return;
 
+    if (active && active.classList.contains('pick-btn')) {
+      const picks = [pickEra, pickGenre, pickSort], i = picks.indexOf(active);
+      if (k === 'ArrowRight' && picks[i + 1]) { e.preventDefault(); picks[i + 1].focus(); }
+      else if (k === 'ArrowLeft' && picks[i - 1]) { e.preventDefault(); picks[i - 1].focus(); }
+      else if (k === 'ArrowDown') { e.preventDefault(); const sp = els.spines.querySelector('.spine[aria-pressed="true"]') || els.spines.querySelector('.spine'); sp && sp.focus(); }
+      else if (k === 'ArrowUp') { e.preventDefault(); const t = els.tabs.querySelector('[aria-pressed="true"]') || els.tabs.firstChild; t && t.focus(); }
+      return;
+    }
     if (active && active.classList.contains('era')) {
       const eras = [...els.eras.children], i = eras.indexOf(active);
       if (k === 'ArrowRight') { e.preventDefault(); (eras[i + 1] || els.genre).focus(); }
@@ -1729,7 +1935,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (active && active.classList.contains('spine')) {
       const i = +active.dataset.index;
       if (k === 'ArrowDown') { e.preventDefault(); const n = els.spines.querySelector('.spine[data-index="' + (i + 1) + '"]') || els.spines.querySelector('.more'); if (n) n.focus(); }
-      else if (k === 'ArrowUp') { e.preventDefault(); if (i > 0) select(i - 1, true); else { const t = els.eras.querySelector('[aria-pressed="true"]') || els.eras.firstChild; t && t.focus(); } }
+      else if (k === 'ArrowUp') { e.preventDefault(); if (i > 0) select(i - 1, true); else { focusFilters(); } }
       else if (k === 'ArrowRight') { e.preventDefault(); els.playBtn.focus(); }
       return;
     }
@@ -1737,7 +1943,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       const tabs = [...els.tabs.children], i = tabs.indexOf(active);
       if (k === 'ArrowRight' && tabs[i + 1]) { e.preventDefault(); tabs[i + 1].focus(); }
       else if (k === 'ArrowLeft' && tabs[i - 1]) { e.preventDefault(); tabs[i - 1].focus(); }
-      else if (k === 'ArrowDown') { e.preventDefault(); const t = els.eras.querySelector('[aria-pressed="true"]') || els.eras.firstChild; t && t.focus(); }
+      else if (k === 'ArrowDown') { e.preventDefault(); focusFilters(); }
       else if (k === 'ArrowUp') { e.preventDefault(); (state.mode === 'tv' ? tvEls.modeTv : tvEls.modeTapes).focus(); }
       return;
     }
@@ -2215,15 +2421,17 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     hideIdent();
 
-    let src = slot.item.file
-      ? 'https://archive.org/download/' + encodeURIComponent(slot.item.item) + '/' + slot.item.file.split('/').map(encodeURIComponent).join('/')
+    let list = slot.item.file
+      ? ['https://archive.org/download/' + encodeURIComponent(slot.item.item) + '/' + slot.item.file.split('/').map(encodeURIComponent).join('/')]
       : srcCache.get(slot.item.id);
-    if (src === undefined) {
-      try { src = await findVideo(slot.item.id); } catch (e) { src = null; }
-      srcCache.set(slot.item.id, src);
+    if (list === undefined) {
+      try { list = await findVideos(slot.item.id); } catch (e) { list = []; }
+      srcCache.set(slot.item.id, list);
     }
     if (token !== tv.token) return;
-    if (!src) { standBy(); return; }
+    if (!list || !list.length) { standBy(); return; }
+    const src = list[0];
+    tv.queue = list.slice(1);
 
     v.src = src;
     v.onloadedmetadata = () => {
@@ -2288,7 +2496,18 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
   tvEls.video.addEventListener('playing', () => { tvEls.standby.hidden = true; });
   tvEls.video.addEventListener('ended', () => standBy());
-  tvEls.video.addEventListener('error', () => { if (!tvEls.tv.hidden && tvEls.video.getAttribute('src')) standBy(); });
+  // A file that errors or shows no picture: try the item's other files, else stand by until the next show
+  function tvTrySpare() {
+    if (tvEls.tv.hidden || !tv.cur) return;
+    if (tv.queue && tv.queue.length) { tvEls.video.src = tv.queue.shift(); tvEls.video.play().catch(() => {}); tvStatic(); return; }
+    tvEls.video.pause();
+    standBy();
+  }
+  tvEls.video.addEventListener('error', () => { if (!tvEls.tv.hidden && tvEls.video.getAttribute('src')) tvTrySpare(); });
+  tvEls.video.addEventListener('playing', () => {
+    const token = tv.token, src = tvEls.video.currentSrc;
+    watchForPicture(tvEls.video, () => token === tv.token && tvEls.video.currentSrc === src && !tvEls.tv.hidden, tvTrySpare);
+  });
   tvEls.tv.addEventListener('mousemove', wakeTv);
   tvEls.tv.addEventListener('click', e => { wakeTv(); if (!e.target.closest('.ctrls')) startAfterTap(); });
   tvEls.ctrls.addEventListener('click', e => {
@@ -2335,6 +2554,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
      Returns true if the page handled it (closed the TV, player or boot screen), false to exit the app. */
   window.rrBack = () => {
     if (!bootEl.hidden) { hideBoot(); return true; }
+    if (!pmEl.hidden) { closePicker(); return true; }
     if (!tipEl.hidden) { closeTip(); return true; }
     if (!tvEls.tv.hidden) { closeTv(); return true; }
     if (!els.player.hidden) { stopPlayer(); return true; }
