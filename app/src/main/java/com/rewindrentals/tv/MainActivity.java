@@ -1,11 +1,16 @@
 package com.rewindrentals.tv;
 
 import android.app.Activity;
+import android.app.UiModeManager;
+import android.content.pm.ActivityInfo;
+import android.content.pm.PackageManager;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.view.View;
 import android.view.WindowManager;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
@@ -15,21 +20,29 @@ import android.webkit.WebViewClient;
 import androidx.webkit.WebViewAssetLoader;
 
 /**
- * Rewind Rentals for Android TV and Fire TV.
+ * Rewind Rentals for Android TV, Fire TV and phones.
  * Shows the web app (app/src/main/assets/index.html) full screen.
- * The page is served from a proper https address inside the app, so saved
- * progress, My tapes and settings are kept between launches.
+ *
+ * On a TV the screen is always landscape and the page uses its remote-control layout.
+ * On a phone or tablet you browse whichever way up you hold it, and the screen turns
+ * sideways by itself while a tape or channel is playing.
  */
 public class MainActivity extends Activity {
 
     private static final String HOST = "appassets.androidplatform.net";
     private static final String START = "https://" + HOST + "/assets/index.html";
     private WebView web;
+    private boolean tv;
 
     @Override
     protected void onCreate(Bundle state) {
         super.onCreate(state);
         getWindow().addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON);
+
+        tv = isTelevision();
+        setRequestedOrientation(tv
+                ? ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                : ActivityInfo.SCREEN_ORIENTATION_USER);
 
         final WebViewAssetLoader loader = new WebViewAssetLoader.Builder()
                 .setDomain(HOST)
@@ -46,7 +59,11 @@ public class MainActivity extends Activity {
         s.setAllowFileAccess(false);
         s.setUseWideViewPort(true);
         s.setLoadWithOverviewMode(true);
-        s.setUserAgentString(s.getUserAgentString() + " RewindRentalsApp");
+        // Tells the page it is inside the app, and whether this is a TV or a phone
+        s.setUserAgentString(s.getUserAgentString() + " RewindRentalsApp " + (tv ? "RewindTV" : "RewindPhone"));
+
+        // Lets the page ask for the screen to turn sideways while something is playing
+        web.addJavascriptInterface(new Bridge(), "RewindApp");
 
         web.setWebViewClient(new WebViewClient() {
             @Override
@@ -71,7 +88,30 @@ public class MainActivity extends Activity {
         else web.loadUrl(START);
     }
 
-    /** Remote's Back button: let the page close the TV, player or boot screen first. */
+    /** True on Android TV, Google TV and Fire TV. */
+    private boolean isTelevision() {
+        UiModeManager ui = (UiModeManager) getSystemService(UI_MODE_SERVICE);
+        if (ui != null && ui.getCurrentModeType() == Configuration.UI_MODE_TYPE_TELEVISION) return true;
+        PackageManager pm = getPackageManager();
+        return pm.hasSystemFeature("android.software.leanback")
+                || pm.hasSystemFeature("android.software.leanback_only")
+                || pm.hasSystemFeature("amazon.hardware.fire_tv");
+    }
+
+    /** What the page is allowed to ask the app to do: only turn the screen. */
+    private class Bridge {
+        @JavascriptInterface
+        public void setLandscape(final boolean on) {
+            runOnUiThread(() -> {
+                if (tv) return; // TVs are always landscape
+                setRequestedOrientation(on
+                        ? ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE
+                        : ActivityInfo.SCREEN_ORIENTATION_USER);
+            });
+        }
+    }
+
+    /** Back button: let the page close the TV, player, menu or box first. */
     @Override
     @SuppressWarnings("deprecation")
     public void onBackPressed() {
