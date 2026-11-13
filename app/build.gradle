@@ -10,8 +10,8 @@ android {
         applicationId 'com.rewindrentals.tv'
         minSdk 22          // Fire OS 5 and Android TV 5.1 and newer
         targetSdk 34
-        versionCode 1
-        versionName '1.0'
+        versionCode 3
+        versionName '1.2'
     }
 
     // A fixed test key, so new builds install over old ones without uninstalling first

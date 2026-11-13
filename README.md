@@ -39,6 +39,22 @@ Replace `app/src/main/assets/index.html` with the new version and commit. GitHub
 APK and the same link always points at the newest one. Run Downloader again and install over
 the top: your My tapes and settings are kept.
 
+## Cast to a TV from your phone
+
+Casting needs Google's cast kit, which only works on a secure web page in Chrome, not inside
+this app. So the same page is also published as a website by `.github/workflows/publish-website.yml`.
+
+1. In the repository, open **Settings**, then **Pages**, and set **Source** to **GitHub Actions**.
+2. Push any change (or run the "Publish website" workflow by hand). It takes about a minute.
+3. The site appears at `https://YOUR-USERNAME.github.io/REPO-NAME/`.
+
+On your phone, open that address in **Chrome** (not the app). If a Chromecast or Google TV is on
+the same Wi-Fi, a **Cast** button appears in the header. Pick your TV, then play a tape or a
+channel: the TV plays it and your phone becomes the remote. Press the Cast button again to stop.
+
+Inside the app, the Cast button simply doesn't appear. To get Rewind Rentals itself onto a TV,
+install the APK on the TV, or use your phone's own "Cast screen" / screen mirroring.
+
 ## On the remote
 
 Arrows move, OK selects, Back closes the TV or player (and exits from the shop).

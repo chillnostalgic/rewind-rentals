@@ -461,6 +461,24 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   .stars::before,.stars::after,.brand.lit .logo,.brand.lit .sub,.spine[aria-pressed="true"],.spine-title.run .mq,.spine.fly,.cover.fly,.rewind .cassette,.rewind .rw-head,.rewind .rw-sub,.tape-strip,.bump-down,.bump-up,.shelf-head h2.pop,#count.pop,.pm-opt,.ch-row.in,#tvCh.punch,.banner.slide,body.sheet-open .sheet-backdrop,body.sheet-open .sheet-close::before,.coin,.tip-btn:hover,.tip-btn:focus-visible{animation:none !important}
 }
 
+/* Cast button and the "now playing on your TV" panel */
+.cast-btn{border:2px solid var(--edge);background:transparent;color:var(--muted);border-radius:6px;padding:8px 14px;font-weight:600;cursor:pointer;transition:transform .14s cubic-bezier(.2,1.6,.4,1),box-shadow .2s,color .2s,border-color .2s}
+.cast-btn:hover,.cast-btn:focus-visible{transform:translateY(-2px);border-color:var(--cyan);color:var(--ink);box-shadow:0 0 0 3px var(--amber),0 0 20px rgba(56,225,232,.45);outline:none}
+.cast-btn[aria-pressed="true"]{border-color:var(--cyan);color:var(--cyan);background:rgba(56,225,232,.14);box-shadow:0 0 18px rgba(56,225,232,.35)}
+.casting{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;text-align:center;padding:24px;background:radial-gradient(circle at 50% 42%,#241459 0%,#0a0518 70%);font-family:var(--vcr)}
+.cast-tv{position:relative;width:132px;height:88px;border:5px solid var(--label);border-radius:10px;background:#0a0518;margin-bottom:14px}
+.cast-tv::after{content:"";position:absolute;left:50%;bottom:-16px;width:56px;height:8px;margin-left:-28px;border-radius:0 0 6px 6px;background:var(--label)}
+.cast-wave{position:absolute;left:12px;bottom:10px;border:4px solid var(--cyan);border-color:transparent transparent transparent var(--cyan);border-radius:50%;opacity:0;animation:castWave 1.8s ease-out infinite;transform:rotate(-45deg);transform-origin:0 100%}
+.cast-wave:nth-child(1){width:20px;height:20px}
+.cast-wave:nth-child(2){width:38px;height:38px;animation-delay:.3s}
+.cast-wave:nth-child(3){width:58px;height:58px;animation-delay:.6s}
+@keyframes castWave{0%{opacity:0;transform:rotate(-45deg) scale(.5)}35%{opacity:1}100%{opacity:0;transform:rotate(-45deg) scale(1)}}
+.cast-to{margin:0;font-size:28px;color:var(--ink);text-transform:uppercase;letter-spacing:.06em}
+.cast-to b{color:var(--cyan);font-weight:400}
+.cast-title{margin:2px 0 0;font-family:var(--display);font-size:clamp(20px,3vw,30px);color:var(--label);max-width:24ch;line-height:1.2}
+.cast-hint{margin:6px 0 0;font-size:22px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.cast-wave{animation:none;opacity:.5}}
+
 /* Mode switch */
 .modes{display:flex;gap:0;border:2px solid var(--edge);border-radius:6px;overflow:hidden;margin-right:auto;margin-left:8px}
 .mode{border:0;background:transparent;color:var(--muted);padding:8px 16px;font-weight:600;cursor:pointer}
@@ -576,6 +594,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
       <button class="mode hdr" id="modeTv" type="button" aria-pressed="false">Watch TV</button>
     </div>
     <div class="hdr-tools">
+      <button class="cast-btn hdr" id="castBtn" type="button" hidden>⬒ Cast</button>
       <button class="tip-btn hdr" id="tipBtn" type="button">☕ Tip jar</button>
       <button class="vcr-clock hdr blink" id="vcrClock" type="button">12:00</button>
       <button class="sound-btn hdr" id="soundBtn" type="button" aria-pressed="true">Sound on</button>
@@ -684,6 +703,12 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
 <div class="player" id="player" hidden>
   <video id="video" playsinline preload="auto"></video>
   <div class="noise" id="noise"></div>
+  <div class="casting" id="casting" hidden>
+    <div class="cast-tv" aria-hidden="true"><span class="cast-wave"></span><span class="cast-wave"></span><span class="cast-wave"></span></div>
+    <p class="cast-to">Playing on <b id="castName">your TV</b></p>
+    <p class="cast-title" id="castTitle"></p>
+    <p class="cast-hint">Use the buttons below as your remote</p>
+  </div>
   <div class="osd"><span id="osdState">Play ▶</span><span id="osdTime">0:00:00</span></div>
   <p class="p-error" id="pError" hidden></p>
   <div class="bar" id="bar">
@@ -1719,6 +1744,86 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     }, 3500);
   }
 
+  /* Casting to a TV (Chromecast and Google TV).
+     Only works on a web page opened in Chrome, over https: Google's cast kit isn't available
+     inside the Android app's browser. Everything below does nothing at all if it can't load. */
+  const Cast = (() => {
+    let ctx = null, remote = null, ctl = null, ready = false;
+    const api = {
+      available: false, connected: false, name: '', ended: null, onChange: null,
+      duration: 0, time: 0, paused: false
+    };
+    function fire() { if (api.onChange) try { api.onChange(); } catch (e) {} }
+    function init() {
+      try {
+        const cf = window.cast && window.cast.framework, cc = window.chrome && window.chrome.cast;
+        if (!cf || !cc) return;
+        ctx = cf.CastContext.getInstance();
+        ctx.setOptions({
+          receiverApplicationId: cc.media.DEFAULT_MEDIA_RECEIVER_APP_ID,
+          autoJoinPolicy: cc.AutoJoinPolicy.ORIGIN_SCOPED
+        });
+        remote = new cf.RemotePlayer();
+        ctl = new cf.RemotePlayerController(remote);
+        const E = cf.RemotePlayerEventType;
+        ctl.addEventListener(E.IS_CONNECTED_CHANGED, () => {
+          api.connected = !!remote.isConnected;
+          const sess = ctx.getCurrentSession();
+          api.name = (sess && sess.getCastDevice && sess.getCastDevice().friendlyName) || 'your TV';
+          fire();
+        });
+        ctl.addEventListener(E.CURRENT_TIME_CHANGED, () => { api.time = remote.currentTime || 0; fire(); });
+        ctl.addEventListener(E.DURATION_CHANGED, () => { api.duration = remote.duration || 0; fire(); });
+        ctl.addEventListener(E.IS_PAUSED_CHANGED, () => { api.paused = !!remote.isPaused; fire(); });
+        ctl.addEventListener(E.PLAYER_STATE_CHANGED, () => {
+          if (remote.playerState === 'IDLE' && api.started && api.ended) { api.started = false; api.ended(); }
+          if (remote.playerState === 'PLAYING') api.started = true;
+          fire();
+        });
+        ready = true;
+        api.available = true;
+        fire();
+      } catch (e) {}
+    }
+    // Google calls this once its kit has loaded
+    window.__onGCastApiAvailable = ok => { if (ok) init(); };
+    function load() {
+      if (!/^https:$/.test(location.protocol) || IN_APP) return;   // needs a secure web page, not the app
+      const sc = document.createElement('script');
+      sc.src = 'https://www.gstatic.com/cv/js/sender/v1/cast_sender.js?loadCastFramework=1';
+      sc.async = true;
+      document.head.appendChild(sc);
+    }
+    api.load = load;
+    api.pick = () => { if (ctx) ctx.requestSession().catch(() => {}); };
+    api.leave = () => { if (ctx) try { ctx.endCurrentSession(true); } catch (e) {} };
+    api.play = (url, opts) => {
+      const sess = ctx && ctx.getCurrentSession();
+      if (!sess) return Promise.reject();
+      const cc = window.chrome.cast;
+      const info = new cc.media.MediaInfo(url, 'video/mp4');
+      const md = new cc.media.GenericMediaMetadata();
+      md.title = opts.title || 'Rewind Rentals';
+      if (opts.subtitle) md.subtitle = opts.subtitle;
+      if (opts.poster) md.images = [new cc.Image(opts.poster)];
+      info.metadata = md;
+      const req = new cc.media.LoadRequest(info);
+      req.currentTime = Math.max(0, opts.startAt || 0);
+      req.autoplay = true;
+      api.ended = opts.onEnd || null;
+      api.started = false;
+      return sess.loadMedia(req);
+    };
+    api.toggle = () => { if (ctl) ctl.playOrPause(); };
+    api.stop = () => { if (ctl) try { ctl.stop(); } catch (e) {} };
+    api.seek = to => {
+      if (!remote || !ctl) return;
+      remote.currentTime = Math.max(0, Math.min(to, (remote.duration || 0) - 1));
+      ctl.seek();
+    };
+    return api;
+  })();
+
   // Rewind screen then player
   let rwTimer = null;
   async function insertTape(fromStart) {
@@ -1819,13 +1924,27 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   function wake() {
     els.player.classList.remove('idle');
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { if (!els.video.paused) els.player.classList.add('idle'); }, 3500);
+    idleTimer = setTimeout(() => { if (!castState.on && !els.video.paused) els.player.classList.add('idle'); }, 3500);
   }
   function tracking() {
     sfx.static();
     els.noise.classList.remove('on'); void els.noise.offsetWidth; els.noise.classList.add('on');
   }
 
+  // What the player is driving: the screen in front of you, or a TV across the room
+  const castState = { on: false };
+  function castTick() {
+    els.osdTime.textContent = fmt(Cast.time);
+    els.dur.textContent = Cast.duration ? fmt(Cast.duration) : '';
+    if (Cast.duration) els.fill.style.width = (Cast.time / Cast.duration * 100) + '%';
+    els.toggleBtn.textContent = Cast.paused ? 'Play' : 'Pause';
+    osd(Cast.paused ? 'Pause ❚❚' : 'Play ▶');
+    const d = state.playing;
+    if (d && Cast.duration && Cast.time > 5) {
+      if (Cast.time < Cast.duration - 20) store.set(posKey(d.identifier), { t: Cast.time });
+      else store.del(posKey(d.identifier));
+    }
+  }
   function openPlayer(d, src, startAt) {
     state.playing = d;
     els.pTitle.textContent = clean(first(d.title)) || d.identifier;
@@ -1834,6 +1953,35 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     crtOn(els.player);
     setLandscape(true);
     document.body.style.overflow = 'hidden';
+
+    // Casting: the TV plays it and this screen becomes the remote
+    if (Cast.connected) {
+      castState.on = true;
+      $('casting').hidden = false;
+      els.ctrls.querySelector('[data-act="full"]').hidden = true;
+      els.pTitle.hidden = true;
+      $('castTitle').textContent = clean(first(d.title)) || d.identifier;
+      $('castName').textContent = Cast.name || 'your TV';
+      els.video.removeAttribute('src');
+      Cast.play(src, {
+        title: clean(first(d.title)) || d.identifier,
+        subtitle: 'Rewind Rentals',
+        poster: 'https://archive.org/services/img/' + encodeURIComponent(d.identifier),
+        startAt,
+        onEnd: () => { if (castState.on && !els.player.hidden) { osd('Stop ■'); els.player.classList.remove('idle'); } }
+      }).catch(() => {
+        els.pError.textContent = 'Your TV couldn’t play this tape. Press Stop, then try another copy.';
+        els.pError.hidden = false;
+      });
+      castTick();
+      wake();
+      els.toggleBtn.focus();
+      return;
+    }
+    castState.on = false;
+    $('casting').hidden = true;
+    els.ctrls.querySelector('[data-act="full"]').hidden = false;
+    els.pTitle.hidden = false;
     els.video.src = src;
     els.video.addEventListener('loadedmetadata', () => {
       if (startAt) els.video.currentTime = startAt;
@@ -1847,7 +1995,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
 
   function savePos(force) {
     const d = state.playing, v = els.video;
-    if (!d || !isFinite(v.duration)) return;
+    if (castState.on || !d || !isFinite(v.duration)) return;
     if (!force && Date.now() - lastSave < 5000) return;
     lastSave = Date.now();
     if (v.currentTime > 5 && v.currentTime < v.duration - 20) store.set(posKey(d.identifier), { t: v.currentTime });
@@ -1855,6 +2003,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   }
 
   function stopPlayer() {
+    if (castState.on) { castTick(); Cast.stop(); castState.on = false; $('casting').hidden = true; }
     savePos(true);
     const v = els.video;
     v.pause(); v.removeAttribute('src'); v.load();
@@ -1870,8 +2019,17 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     els.playBtn.focus();
   }
 
-  function toggle() { const v = els.video; if (v.paused) v.play().catch(() => {}); else v.pause(); }
+  function toggle() {
+    if (castState.on) { Cast.toggle(); return; }
+    const v = els.video; if (v.paused) v.play().catch(() => {}); else v.pause();
+  }
   function seek(delta) {
+    if (castState.on) {
+      if (!Cast.duration) return;
+      Cast.seek(Cast.time + delta);
+      osd(delta < 0 ? '◀◀ Rew' : 'FF ▶▶', true);
+      return;
+    }
     const v = els.video;
     if (!isFinite(v.duration)) return;
     v.currentTime = Math.min(Math.max(0, v.currentTime + delta), v.duration - 1);
@@ -1927,7 +2085,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     v.pause();
   }
   els.video.addEventListener('error', () => {
-    if (els.player.hidden || !state.playing || !els.video.getAttribute('src')) return;
+    if (castState.on || els.player.hidden || !state.playing || !els.video.getAttribute('src')) return;
     trySpare('error');
   });
   els.video.addEventListener('playing', () => {
@@ -1937,6 +2095,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
 
   els.progress.addEventListener('click', e => {
     const v = els.video, r = els.progress.getBoundingClientRect();
+    if (castState.on) { if (Cast.duration) Cast.seek((e.clientX - r.left) / r.width * Cast.duration); return; }
     if (!isFinite(v.duration)) return;
     v.currentTime = (e.clientX - r.left) / r.width * v.duration;
     tracking();
@@ -1993,6 +2152,24 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     }
   });
   els.restartBtn.addEventListener('click', () => insertTape(true));
+
+  // Cast button: appears only when a TV is reachable
+  const castBtn = $('castBtn');
+  function renderCast() {
+    castBtn.hidden = !Cast.available;
+    castBtn.textContent = Cast.connected ? '⬒ ' + Cast.name : '⬒ Cast';
+    castBtn.setAttribute('aria-pressed', String(Cast.connected));
+    castBtn.title = Cast.connected ? 'Playing on ' + Cast.name + '. Press to stop casting.' : 'Play on a TV';
+    $('castName').textContent = Cast.name || 'your TV';
+    if (!els.player.hidden && castState.on) castTick();
+  }
+  castBtn.addEventListener('click', () => {
+    sfx.select();
+    if (Cast.connected) { Cast.leave(); if (!els.player.hidden) stopPlayer(); }
+    else Cast.pick();
+  });
+  Cast.onChange = renderCast;
+  Cast.load();
 
   // Swap to the next copy of this film, for when one looks rough
   els.altBtn.addEventListener('click', () => {
@@ -2651,6 +2828,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     const b = tvEls.ctrls.querySelector('button'); b && b.focus();
   }
   function closeTv() {
+    if (tv.casting) { Cast.stop(); tv.casting = false; }
     tv.token++; tv.cur = null;
     clearInterval(tv.tick);
     const v = tvEls.video; v.pause(); v.removeAttribute('src'); v.load();
@@ -2717,6 +2895,22 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     if (!list || !list.length) { standBy(); return; }
     const src = list[0];
     tv.queue = list.slice(1);
+
+    // Casting: the TV plays the programme from wherever it's up to
+    if (Cast.connected) {
+      hideIdent();
+      tvEls.standby.hidden = true;
+      tv.casting = true;
+      const offset = Math.max(0, (Date.now() - slot.startTs) / 1000);
+      Cast.play(src, {
+        title: slot.item.title,
+        subtitle: CHANNELS[tv.ch].name + ' • Rewind TV',
+        poster: 'https://archive.org/services/img/' + encodeURIComponent(slot.item.item || slot.item.id),
+        startAt: offset
+      }).catch(() => standBy('Your TV couldn’t play this programme. It’ll try again at the next one.'));
+      return;
+    }
+    tv.casting = false;
 
     v.src = src;
     v.onloadedmetadata = () => {
