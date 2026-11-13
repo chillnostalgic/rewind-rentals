@@ -385,6 +385,82 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 .tv-ui .cover{transform:none}
 .tv-ui .card.swap .cover{animation:riseIn .3s ease-out both}
 
+/* ===== Juice, round two ===== */
+/* Night sky that twinkles behind the shop */
+.stars{position:fixed;inset:0 0 40vh 0;z-index:0;pointer-events:none}
+.stars::before,.stars::after{content:"";position:absolute;inset:0;background-repeat:repeat}
+.stars::before{background-image:radial-gradient(1.5px 1.5px at 20px 30px,#fff,transparent),radial-gradient(1px 1px at 120px 80px,#bfe9ff,transparent),radial-gradient(1.5px 1.5px at 210px 150px,#ffd9ec,transparent),radial-gradient(1px 1px at 300px 40px,#fff,transparent);background-size:340px 220px;animation:twinkle 3.6s ease-in-out infinite alternate}
+.stars::after{background-image:radial-gradient(1px 1px at 60px 120px,#fff,transparent),radial-gradient(1.5px 1.5px at 170px 20px,#c8fbff,transparent),radial-gradient(1px 1px at 260px 190px,#fff,transparent);background-size:290px 250px;animation:twinkle 5.2s ease-in-out -2s infinite alternate-reverse}
+@keyframes twinkle{from{opacity:.15}to{opacity:.75}}
+
+/* The sign flickers on like a neon tube when the shop opens */
+.brand.lit .logo{animation:neonOn 1.5s linear both,glint 7s ease-in-out 3s infinite}
+.brand.lit .sub{animation:neonOn 1.2s linear .5s both}
+@keyframes neonOn{0%{opacity:0}8%{opacity:1}12%{opacity:.15}20%{opacity:1}26%{opacity:.3}34%{opacity:1}60%{opacity:1}64%{opacity:.5}70%,100%{opacity:1}}
+
+/* The tape you're on glows gently, and long titles scroll so you can read them */
+.spine[aria-pressed="true"]:not(.new):not(.fly){animation:spinePulse 1.9s ease-in-out infinite}
+@keyframes spinePulse{0%,100%{box-shadow:-6px 6px 0 rgba(0,0,0,.35),0 0 16px rgba(255,182,39,.35)}50%{box-shadow:-6px 6px 0 rgba(0,0,0,.35),0 0 36px rgba(255,182,39,.8)}}
+.spine-title.run{text-overflow:clip}
+.spine-title.run .mq{display:inline-block;animation:mq var(--mqt,4s) ease-in-out .9s infinite alternate}
+@keyframes mq{to{transform:translateX(calc(-1 * var(--mqd,0px)))}}
+
+/* Pressing Play: the tape leaves the shelf, then the cassette drops into the machine */
+.spine.fly{animation:tapeOut .34s cubic-bezier(.5,0,.9,.4) both;z-index:3}
+@keyframes tapeOut{0%{transform:translateX(16px) scale(1.015)}35%{transform:translateX(-10px) scale(1.03)}100%{transform:translateX(115%) rotate(4deg) scale(1.05);opacity:0}}
+.cover.fly{animation:boxDrop .34s cubic-bezier(.5,0,.9,.4) both}
+@keyframes boxDrop{to{transform:translateY(60px) scale(.8);opacity:0}}
+.rewind .cassette{animation:cassIn .55s cubic-bezier(.2,1.5,.4,1) both}
+@keyframes cassIn{from{transform:translateY(70vh) rotate(-6deg)}to{transform:none}}
+.rewind .rw-head{animation:riseIn .4s .15s both}
+.rewind .rw-sub{animation:blinkSoft 1s steps(1) .6s infinite}
+@keyframes blinkSoft{50%{opacity:.35}}
+.tape-strip{background:repeating-linear-gradient(90deg,#3a2414 0 10px,#5a3a22 10px 20px);background-size:40px 100%;animation:tapeRun .25s linear infinite reverse}
+@keyframes tapeRun{to{background-position:40px 0}}
+
+/* A little bounce when you hit the end of a list */
+.bump-down{animation:bumpDown .28s cubic-bezier(.2,1.6,.4,1)}
+.bump-up{animation:bumpUp .28s cubic-bezier(.2,1.6,.4,1)}
+@keyframes bumpDown{40%{transform:translateY(-9px)}100%{transform:none}}
+@keyframes bumpUp{40%{transform:translateY(9px)}100%{transform:none}}
+
+/* Shelf name and tape count pop when they change */
+.shelf-head h2.pop{animation:riseIn .35s cubic-bezier(.2,1.4,.4,1) both}
+#count.pop{animation:countPop .45s cubic-bezier(.2,1.8,.4,1) both}
+@keyframes countPop{from{transform:scale(1.5);color:var(--amber)}to{transform:none}}
+#count{display:inline-block;transform-origin:right center}
+
+/* Pop-up menu options arrive one after another */
+.pm-opt{animation:optIn .26s cubic-bezier(.2,1.3,.4,1) both;animation-delay:calc(min(var(--i,0),12) * 22ms)}
+@keyframes optIn{from{opacity:0;transform:translateX(-18px)}to{opacity:1;transform:none}}
+.pm-opt:focus-visible{transform:translateX(6px)}
+.pm-opt{transition:transform .14s cubic-bezier(.2,1.6,.4,1),border-color .15s}
+
+/* Guide rows deal in like cards, and the channel number thumps on screen when you flip */
+.ch-row.in{animation:spineIn .4s cubic-bezier(.2,1.3,.4,1) both;animation-delay:calc(min(var(--i,0),20) * 26ms)}
+#tvCh.punch{display:inline-block;transform-origin:left top;animation:chPunch .45s cubic-bezier(.2,1.6,.4,1) both}
+@keyframes chPunch{0%{transform:scale(2.2);color:var(--amber)}100%{transform:none}}
+.banner .bn-top{animation:none}
+.banner.slide{animation:bannerUp .4s cubic-bezier(.2,1.3,.4,1) both}
+@keyframes bannerUp{from{transform:translateY(40px)}to{transform:none}}
+
+/* Phone: the sheet's backdrop fades in, and the handle nudges to say "pull me down" */
+body.sheet-open .sheet-backdrop{animation:fadeIn .25s both}
+@keyframes fadeIn{from{opacity:0}to{opacity:1}}
+body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
+@keyframes handle{50%{transform:translateY(4px)}}
+
+/* Tip jar: coins drop in */
+.tip-jar-art{position:relative}
+.tip-jar-art .coin{position:absolute;top:-70px;left:50%;width:15px;height:15px;margin-left:-7px;padding:0;border-radius:50%;box-shadow:0 0 6px rgba(255,182,39,.8);background:radial-gradient(circle at 35% 35%,#fff6c9,var(--amber) 60%,#a8650b);animation:coin .7s cubic-bezier(.5,0,.8,.5) both;animation-delay:calc(var(--i) * 110ms);--x:0px}
+@keyframes coin{0%{transform:translate(var(--x),0) rotate(0);opacity:1}80%{opacity:1}100%{transform:translate(calc(var(--x) * .3),104px) rotate(400deg);opacity:0}}
+.tip-btn:hover,.tip-btn:focus-visible{animation:jarShake .5s ease-in-out}
+@keyframes jarShake{20%{transform:translateY(-2px) rotate(-5deg)}40%{transform:translateY(-2px) rotate(4deg)}60%{transform:translateY(-2px) rotate(-3deg)}100%{transform:translateY(-2px) rotate(-2deg)}}
+
+@media (prefers-reduced-motion:reduce){
+  .stars::before,.stars::after,.brand.lit .logo,.brand.lit .sub,.spine[aria-pressed="true"],.spine-title.run .mq,.spine.fly,.cover.fly,.rewind .cassette,.rewind .rw-head,.rewind .rw-sub,.tape-strip,.bump-down,.bump-up,.shelf-head h2.pop,#count.pop,.pm-opt,.ch-row.in,#tvCh.punch,.banner.slide,body.sheet-open .sheet-backdrop,body.sheet-open .sheet-close::before,.coin,.tip-btn:hover,.tip-btn:focus-visible{animation:none !important}
+}
+
 /* Mode switch */
 .modes{display:flex;gap:0;border:2px solid var(--edge);border-radius:6px;overflow:hidden;margin-right:auto;margin-left:8px}
 .mode{border:0;background:transparent;color:var(--muted);padding:8px 16px;font-weight:600;cursor:pointer}
@@ -490,6 +566,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 </style>
 </head>
 <body>
+<div class="stars" aria-hidden="true"></div>
 <div class="horizon" aria-hidden="true"><div class="grid-floor"></div></div>
 <div class="app">
   <header class="top">
@@ -739,6 +816,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     'Cinderella 1950', 'Alice in Wonderland 1951', 'Peter Pan 1953', 'Lady and the Tramp', 'Sleeping Beauty 1959', 'One Hundred and One Dalmatians',
     'The Sword in the Stone', 'The Jungle Book 1967', 'The Aristocats', 'Robin Hood 1973', 'The Rescuers', 'The Fox and the Hound',
     'The Black Cauldron', 'The Great Mouse Detective', 'Oliver and Company', 'The Little Mermaid 1989', 'DuckTales the Movie', 'A Goofy Movie'];
+  // A long list of names makes a request too long for the Archive to accept, so lists are asked for a few at a time
+  const chunkList = (list, size) => { const out = []; for (let i = 0; i < list.length; i += size) out.push(list.slice(i, i + size)); return out; };
   // Keep out holiday vlogs, reviews, reactions and podcasts that mention the shows
   const NOT_THE_SHOW = ' AND NOT (vlog OR vlogs OR disneyland OR "disney world" OR "theme park" OR trip OR haul OR review OR reaction OR podcast OR unboxing OR "let\'s play" OR gameplay OR walkthrough)';
   const termsQ = terms => '((' + terms.map(t => 'title:("' + t + '") OR subject:("' + t + '")').join(' OR ') + ')' + NOT_THE_SHOW + ')';
@@ -751,8 +830,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     { id: 'classic_cartoons', name: 'Cartoons',               tag: 'Toons',   films: true },
     { id: 'silent_films',     name: 'Silent era',             tag: 'Silent',  films: true },
     { id: 'prelinger',        name: 'Old adverts and oddities', tag: 'Prelinger', films: true },
-    { id: 'henson',           name: 'Muppets and Henson',     tag: 'Henson', homeOnly: true, films: true, q: termsQ(HENSON_FILMS) },
-    { id: 'disney',           name: 'Classic Disney',         tag: 'Disney', homeOnly: true, films: true, q: termsQ(DISNEY_FILMS) }
+    { id: 'henson',           name: 'Muppets and Henson',     tag: 'Henson', homeOnly: true, films: true, q: termsQ(HENSON_FILMS), terms: HENSON_FILMS },
+    { id: 'disney',           name: 'Classic Disney',         tag: 'Disney', homeOnly: true, films: true, q: termsQ(DISNEY_FILMS), terms: DISNEY_FILMS }
   ].filter(sh => CONFIG.edition === 'home' || !sh.homeOnly);
   // Shelves that are real Archive collections (search and staff picks look across these)
   const COLLECTION_SHELVES = SHELVES.filter(sh => !sh.q);
@@ -865,9 +944,21 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       rewind(dur) { noise(dur, 0.035, 4200, 1400); tone(240, dur, 'sawtooth', 0.01, 170); },
       static() { noise(0.3, 0.05, 2600); },
       power() { tone(70, 0.5, 'sine', 0.1, 40); noise(0.25, 0.03, 900); },
-      jingle() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.05, 0, i * 0.13)); }
+      jingle() { [523, 659, 784, 1047].forEach((f, i) => tone(f, 0.22, 'triangle', 0.05, 0, i * 0.13)); },
+      whoosh() { noise(0.22, 0.035, 700, 3400); },
+      pop() { tone(520, 0.08, 'sine', 0.05, 900); },
+      thud() { tone(95, 0.13, 'sine', 0.09, 48); },
+      eject() { noise(0.16, 0.08, 1800, 500); tone(300, 0.14, 'triangle', 0.05, 120); },
+      ting(delay) { tone(1900, 0.14, 'triangle', 0.03, 2400, delay || 0); }
     };
   })();
+  const replay = (el, cls) => { if (!el) return; el.classList.remove(cls); void el.offsetWidth; el.classList.add(cls); };
+  function bump(el, down) {
+    if (!el) return;
+    el.classList.remove('bump-down', 'bump-up'); void el.offsetWidth;
+    el.classList.add(down ? 'bump-down' : 'bump-up');
+    sfx.thud();
+  }
   let keyNav = false;
   document.addEventListener('keydown', () => { keyNav = true; }, true);
   document.addEventListener('pointerdown', () => { keyNav = false; }, true);
@@ -995,9 +1086,41 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (r.year && (!yearOf(d) || Math.abs(+r.year - +yearOf(d)) <= 6)) d.year = r.year;
     if (r.notes.length) d.versionNote = r.notes.join(', ');
     d._key = titleKey(r.title);
+    d._q = qualityHint(raw + ' ' + r.notes.join(' '));
     d._tidy = true;
     return d;
   }
+  // Not the film itself: trailers, clips, extras. (Left alone on the oddities shelf, where old trailers belong.)
+  const SCRAP = /\b(trailers?|teasers?|tv\sspots?|clips?|samples?|previews?|promos?|deleted\sscenes?|behind\sthe\sscenes|featurettes?|making\sof|commentary|soundtrack|ost|audiobook|radio\s(play|show|drama)|lobby\scards?|posters?|outtakes?|bloopers?|screen\stests?|press\skit|interview)\b/i;
+  const isScrap = (d, shelf) => !(shelf && shelf.id === 'prelinger') && SCRAP.test(d.rawTitle || clean(first(d.title)));
+  /* A rough guess at picture quality from how the uploader labelled it. Restored and HD copies are better;
+     colourised versions of black and white films and "low quality" copies are worse. */
+  function qualityHint(text) {
+    const t = String(text || '').toLowerCase();
+    let q = 0;
+    if (/\b(restor\w*|remaster\w*|criterion|4k|2k\sscan|1080p?|blu-?ray|bdrip|hd)\b/.test(t)) q += 3;
+    if (/\b720p?\b/.test(t)) q += 2;
+    if (/\b(uncut|complete|full\slength)\b/.test(t)) q += 1;
+    if (/\b(colou?ri[sz]ed|colou?ri[sz]ation)\b/.test(t)) q -= 3;
+    if (/\b(low|poor|bad)\s(quality|res\w*)\b|\b(cam|camrip|240p|144p|3gp)\b/.test(t)) q -= 4;
+    if (/\b(dubbed|dub|subbed|hardsub\w*)\b/.test(t)) q -= 2;
+    if (/\b(edited|censored|tv\sedit|abridged|condensed|excerpt)\b/.test(t)) q -= 3;
+    return q;
+  }
+  const betterCopy = (a, b) => (a._q || 0) !== (b._q || 0) ? (a._q || 0) > (b._q || 0) : (+a.downloads || 0) > (+b.downloads || 0);
+  // Put a mixed pile of tapes in the order the Sort menu asks for
+  function sortDocs(docs) {
+    const dl = d => +d.downloads || 0, yr = d => +yearOf(d) || 0, tk = d => titleKey(clean(first(d.title)));
+    const by = {
+      popular: (a, b) => dl(b) - dl(a),
+      oldest: (a, b) => (yr(a) || 9999) - (yr(b) || 9999) || dl(b) - dl(a),
+      newest: (a, b) => yr(b) - yr(a) || dl(b) - dl(a),
+      az: (a, b) => tk(a).localeCompare(tk(b)),
+      za: (a, b) => tk(b).localeCompare(tk(a))
+    }[SORTS[state.sort].id];
+    return by ? docs.sort(by) : docs;
+  }
+
   /* Duplicates: the same title within a year of each other is one tape. The most-watched copy
      leads; the others are kept as backups to try if it won't play. */
   function addOrMerge(d) {
@@ -1012,9 +1135,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       return true;
     }
     if (match.identifier === d.identifier || match.alts.includes(d.identifier)) return false;
-    if ((+d.downloads || 0) > (+match.downloads || 0)) {
+    if (betterCopy(d, match)) {
       const oldId = match.identifier;
-      ['identifier', 'downloads', 'runtime', 'versionNote', 'collection', 'subject'].forEach(k => { match[k] = d[k]; });
+      ['identifier', 'downloads', 'runtime', 'versionNote', 'collection', 'subject', '_q'].forEach(k => { match[k] = d[k]; });
       if (clean(d.description).length > clean(match.description).length) match.description = d.description;
       match.alts.unshift(oldId);
     } else {
@@ -1136,7 +1259,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     pmList.innerHTML = '';
     labels.forEach((label, i) => {
       const b = document.createElement('button');
-      b.type = 'button'; b.className = 'pm-opt'; b.textContent = label;
+      b.type = 'button'; b.className = 'pm-opt'; b.textContent = label; b.style.setProperty('--i', i);
       b.setAttribute('aria-pressed', String(i === current));
       b.addEventListener('click', () => {
         pmEl.hidden = true;
@@ -1147,6 +1270,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       pmList.appendChild(b);
     });
     pmEl.hidden = false;
+    sfx.pop();
     (pmList.children[current] || pmList.firstChild).focus();
   }
   function closePicker() { pmEl.hidden = true; if (pmReturn && document.contains(pmReturn)) pmReturn.focus(); }
@@ -1186,6 +1310,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (reset) {
       state.items = []; state.page = 1; state.total = 0; state.selected = -1; state.keyMap = new Map();
       closeSheet();
+      sfx.whoosh();
       renderList(); renderDetail();
       els.spines.innerHTML = '<div class="skel"></div>'.repeat(8);
       setStatus('Pulling tapes off the shelf…');
@@ -1211,8 +1336,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       q = (searchQuery(state.query, state.fuzzy) || safeQuery(state.query)) + ' AND ' + baseQ;
     }
     if (reset) state.dropped = 0;
-    const pageUrl = () => {
-      const p = new URLSearchParams({ q, rows: state.query ? 100 : ROWS, page: state.page, output: 'json' });
+    const pageUrl = (qq, pageNo) => {
+      const p = new URLSearchParams({ q: qq || q, rows: state.query ? 100 : ROWS, page: pageNo || state.page, output: 'json' });
       ['identifier', 'title', 'year', 'date', 'description', 'runtime', 'collection', 'subject', 'downloads', 'creator', 'uploader'].forEach(f => p.append('fl[]', f));
       // Searching with the default sort means "best match first", which is the Archive's own relevance order
       if (!(state.query && SORTS[state.sort].id === 'popular')) {
@@ -1222,14 +1347,42 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       return 'https://archive.org/advancedsearch.php?' + p.toString();
     };
 
+    const takeIn = d => {
+      if (isBlocked(d)) { state.dropped++; return; }
+      if (filmsOnly && (looksLikeTv(d, shelf) || isScrap(d, shelf))) { state.dropped++; return; }
+      if (!addOrMerge(d)) state.dropped++;
+    };
     try {
+      if (shelf && shelf.terms) {
+        /* A shelf built from a list of names: ask for a few names at a time and combine the answers.
+           (One request for the whole list is too long for the Archive to accept.) */
+        if (!reset) { state.loading = false; return; }
+        const rest = q.slice(shelf.q.length);
+        const batches = chunkList(shelf.terms, 6).map(names => termsQ(names) + rest);
+        let failures = 0;
+        const pages = await mapLimit(batches, 3, async bq => {
+          try { return (await fetchJson(pageUrl(bq, 1))).response.docs; } catch (e) { failures++; return []; }
+        });
+        if (token !== loadToken) return;
+        if (failures === batches.length) throw new Error('No answer');
+        const seenIds = new Set();
+        const docs = [].concat(...pages).filter(d => !seenIds.has(d.identifier) && seenIds.add(d.identifier));
+        docs.forEach(tidyDoc);
+        sortDocs(docs).forEach(takeIn);
+        state.total = state.items.length;
+        setStatus(state.items.length ? '' :
+          (era.from || genre.q) ? 'No tapes on this shelf match those filters. Try another genre or era.' :
+          'This shelf is empty right now. Pick another shelf.');
+        state.loading = false;
+        renderList();
+        if (state.items.length) select(0, false);
+        return;
+      }
       // Fetch a page; if the sweep removed most of it, fetch up to three more so the shelf isn't bare
       const target = state.items.length + 20;
       let found = 0;
       for (let tries = 0; tries < 4; tries++) {
-        const r = await fetch(pageUrl());
-        if (!r.ok) throw new Error('HTTP ' + r.status);
-        const j = await r.json();
+        const j = await fetchJson(pageUrl());
         if (token !== loadToken) return;
         found = j.response.numFound || 0;
         const seen = new Set(state.items.map(i => i.identifier));
@@ -1240,12 +1393,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
           docs = docs.map((d, i) => ({ d, i, s: matchScore(d, state.query) }))
             .sort((a, b) => b.s - a.s || a.i - b.i).map(x => x.d);
         }
-        docs.forEach(d => {
-          if (seen.has(d.identifier)) return;
-          if (isBlocked(d)) { state.dropped++; return; }
-          if (filmsOnly && looksLikeTv(d, shelf)) { state.dropped++; return; }
-          if (!addOrMerge(d)) state.dropped++;
-        });
+        docs.forEach(d => { if (!seen.has(d.identifier)) takeIn(d); });
         state.page++;
         // Barely anything found? Try once more, forgiving typos
         if (state.query && reset && !state.fuzzy && state.items.length < 5) {
@@ -1369,7 +1517,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   // Shelf of spines
   function renderList() {
     els.spines.innerHTML = '';
-    els.count.textContent = state.total ? state.total.toLocaleString() + (state.total === 1 ? ' tape' : ' tapes') : '';
+    const countText = state.total ? state.total.toLocaleString() + (state.total === 1 ? ' tape' : ' tapes') : '';
+    if (els.count.textContent !== countText) { els.count.textContent = countText; if (countText) replay(els.count, 'pop'); }
+    if (els.shelfName.textContent !== els.shelfName._last) { els.shelfName._last = els.shelfName.textContent; replay(els.shelfName, 'pop'); }
     let lastSection = null;
     const prevCount = els.spines._count || 0;
     els.spines._count = state.items.length;
@@ -1392,7 +1542,9 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       if (i >= prevCount) { b.classList.add('new'); b.style.setProperty('--i', i - prevCount); b.addEventListener('animationend', () => b.classList.remove('new'), { once: true }); }
 
       const title = document.createElement('span'); title.className = 'spine-title';
-      title.textContent = clean(first(d.title)) || d.identifier;
+      const mq = document.createElement('span'); mq.className = 'mq';
+      mq.textContent = clean(first(d.title)) || d.identifier;
+      title.appendChild(mq);
 
       const y = yearOf(d);
       const year = document.createElement('span'); year.className = 'spine-year';
@@ -1442,11 +1594,22 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     renderDetail();
     const sp = els.spines.querySelector('.spine[data-index="' + i + '"]');
     if (focus && sp) sp.focus();
+    // Scroll the selected tape's title if it's too long to fit
+    els.spines.querySelectorAll('.spine-title.run').forEach(t => t.classList.remove('run'));
+    const tt = sp && sp.querySelector('.spine-title');
+    if (tt) {
+      const over = tt.scrollWidth - tt.clientWidth;
+      if (over > 6) {
+        tt.style.setProperty('--mqd', (over + 14) + 'px');
+        tt.style.setProperty('--mqt', Math.max(2.4, over / 45) + 's');
+        tt.classList.add('run');
+      }
+    }
     if (fromClick && isPhone()) openSheet();
   }
   // Phone: the tape's box slides up over the shelf
   const isPhone = () => !IS_TV && window.matchMedia('(max-width: 820px)').matches;
-  function openSheet() { document.body.classList.add('sheet-open'); $('detail').scrollTop = 0; }
+  function openSheet() { if (!document.body.classList.contains('sheet-open')) sfx.pop(); document.body.classList.add('sheet-open'); $('detail').scrollTop = 0; }
   function closeSheet() { document.body.classList.remove('sheet-open'); }
   $('sheetClose').addEventListener('click', closeSheet);
   $('sheetBackdrop').addEventListener('click', closeSheet);
@@ -1496,9 +1659,32 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
      The Archive makes its own TV-friendly H.264 copy of most uploads ("h.264" / "h.264 IA").
      The uploader's original ("MPEG4") can be in a format a TV's player can't show, giving sound but a black screen,
      so originals go after the Archive's copies. Very high resolutions go last too, as cheap TV sticks struggle with them. */
-  async function findVideos(id) {
+  async function inspectItem(id) {
     const j = await fetchJson('https://archive.org/metadata/' + encodeURIComponent(id));
-    return rankVideoFiles(j.files || []).map(f => 'https://archive.org/download/' + encodeURIComponent(id) + '/' + f.name.split('/').map(encodeURIComponent).join('/'));
+    const files = rankVideoFiles(j.files || []);
+    const best = files[0];
+    const secs = f => { const v = parseFloat(f.length); return isFinite(v) && /^[\d.]+$/.test(String(f.length)) ? v : parseRuntime(f.length, 'movies'); };
+    return {
+      urls: files.map(f => 'https://archive.org/download/' + encodeURIComponent(id) + '/' + f.name.split('/').map(encodeURIComponent).join('/')),
+      friendly: !!best && String(best.format || '').toLowerCase().includes('h.264'), // a format TVs can show
+      height: best ? (+best.height || 0) : 0,                                         // picture size
+      length: best ? (secs(best) || 0) : 0,                                           // running time in seconds
+      size: best ? (+best.size || 0) : 0
+    };
+  }
+  async function findVideos(id) { return (await inspectItem(id)).urls; }
+  /* Several copies of the same film: put the best first.
+     Most weight on "your TV can definitely show it", then picture size, then being the complete film
+     (a much shorter copy is usually cut down or a fragment), then how much data there is per second. */
+  function rankCopies(list) {
+    const longest = Math.max(0, ...list.map(c => c.length || 0));
+    list.forEach(c => {
+      const size = c.height ? Math.min(c.height, 1080) / 1080 : 0.3;
+      const whole = longest ? (c.length ? Math.min(1, c.length / longest) : 0.8) : 1;
+      const rate = c.length && c.size ? Math.min(1, (c.size / c.length) / 250000) : 0.4;
+      c.score = (c.friendly ? 40 : 0) + size * 30 + whole * 25 + rate * 10;
+    });
+    return list.map((c, i) => ({ c, i })).sort((a, b) => b.c.score - a.c.score || a.i - b.i).map(x => x.c);
   }
   function rankVideoFiles(files) {
     const vids = files.filter(f => /\.(mp4|m4v|webm|ogv)$/i.test(f.name));
@@ -1516,7 +1702,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       if (+f.height > 1080) r += 3;
       return r;
     };
-    return vids.sort((a, b) => rank(a) - rank(b) || a.name.localeCompare(b.name, undefined, { numeric: true }));
+    const h = f => Math.min(+f.height || 0, 1080);
+    return vids.sort((a, b) => rank(a) - rank(b) || h(b) - h(a) || a.name.localeCompare(b.name, undefined, { numeric: true }));
   }
   async function findVideo(id) { const list = await findVideos(id); return list[0] || null; }
 
@@ -1537,6 +1724,17 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   async function insertTape(fromStart) {
     const d = state.items[state.selected];
     if (!d) return;
+    if (!reduceMotion) {
+      const flyer = document.body.classList.contains('sheet-open')
+        ? els.card.querySelector('.cover')
+        : els.spines.querySelector('.spine[data-index="' + state.selected + '"]');
+      if (flyer) {
+        sfx.eject();
+        flyer.classList.add('fly');
+        await new Promise(r => setTimeout(r, 300));
+        setTimeout(() => flyer.classList.remove('fly'), 900);
+      }
+    }
     sfx.clunk();
     addHistory(d);
     const saved = store.get(posKey(d.identifier));
@@ -1562,10 +1760,19 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     const wait = new Promise(r => setTimeout(r, reduceMotion ? 400 : 2600));
     let src = null, netTrouble = false;
     const copies = [d.identifier].concat(d.alts || []);
-    let used = 0, files = [];
-    for (; used < copies.length; used++) {
-      try { files = await findVideos(copies[used]); } catch (e) { files = []; netTrouble = true; }
-      if (files.length) { src = files[0]; break; }
+    // Look inside up to four copies of this film (while the tape "rewinds") and lead with the best one
+    const looked = await mapLimit(copies.slice(0, 4), 4, async id => {
+      try { return Object.assign({ id }, await inspectItem(id)); } catch (e) { netTrouble = true; return null; }
+    });
+    const ranked = rankCopies(looked.filter(c => c && c.urls.length));
+    let queue = [];
+    ranked.forEach(c => c.urls.forEach(url => queue.push({ url })));
+    queue = queue.concat(copies.slice(4).map(id => ({ id })));
+    while (!src && queue.length) {
+      const n = queue.shift();
+      if (n.url) { src = n.url; break; }
+      try { const urls = await findVideos(n.id); if (urls.length) { src = urls[0]; queue.unshift(...urls.slice(1).map(url => ({ url }))); } }
+      catch (e) { netTrouble = true; }
     }
     await wait;
     clearInterval(rwTimer);
@@ -1580,8 +1787,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       chewedUp(d);
       return;
     }
-    // Backup plan if the picture won't show: this copy's other files, then the other copies
-    state.playQueue = files.slice(1).map(url => ({ url })).concat(copies.slice(used + 1).map(id => ({ id })));
+    // Backup plan if the picture won't show: the next best files and copies, in order
+    state.playQueue = queue;
     openPlayer(d, src, startAt);
   }
 
@@ -1854,7 +2061,17 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
       const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
       $('tipQr').innerHTML = qr.createSvgTag(6, 0);
     }).catch(() => { $('tipHint').textContent = 'Visit this address on your phone'; });
-    sfx.jingle();
+    const jar = tipEl.querySelector('.tip-jar-art');
+    jar.querySelectorAll('.coin').forEach(c => c.remove());
+    if (!reduceMotion) {
+      for (let i = 0; i < 6; i++) {
+        const c = document.createElement('span');
+        c.className = 'coin'; c.style.setProperty('--i', i); c.style.setProperty('--x', ((i % 3) - 1) * 16 + 'px');
+        jar.appendChild(c);
+        sfx.ting(0.35 + i * 0.11);
+      }
+      setTimeout(() => jar.querySelectorAll('.coin').forEach(c => c.remove()), 1800);
+    } else sfx.jingle();
     (inApp ? $('tipClose') : $('tipOpen')).focus();
   }
   function closeTip() {
@@ -1902,7 +2119,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
         e.preventDefault();
         const opts = [...pmList.children], i = opts.indexOf(active);
         const n = opts[Math.min(Math.max(0, i + (k === 'ArrowDown' ? 1 : -1)), opts.length - 1)];
-        n && n.focus();
+        if (n && n !== active) n.focus(); else bump(pmList, k === 'ArrowDown');
       }
       if (k === 'ArrowLeft' || k === 'ArrowRight') e.preventDefault();
       return;
@@ -1979,7 +2196,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 
     if (active && active.classList.contains('spine')) {
       const i = +active.dataset.index;
-      if (k === 'ArrowDown') { e.preventDefault(); const n = els.spines.querySelector('.spine[data-index="' + (i + 1) + '"]') || els.spines.querySelector('.more'); if (n) n.focus(); }
+      if (k === 'ArrowDown') { e.preventDefault(); const n = els.spines.querySelector('.spine[data-index="' + (i + 1) + '"]') || els.spines.querySelector('.more'); if (n) n.focus(); else bump(els.spines, true); }
       else if (k === 'ArrowUp') { e.preventDefault(); if (i > 0) select(i - 1, true); else { focusFilters(); } }
       else if (k === 'ArrowRight') { e.preventDefault(); els.playBtn.focus(); }
       return;
@@ -2002,7 +2219,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     }
     if (active && active.classList.contains('ch-row')) {
       const i = rows.indexOf(active);
-      if (k === 'ArrowDown' && rows[i + 1]) { e.preventDefault(); rows[i + 1].focus(); }
+      if (k === 'ArrowDown') { e.preventDefault(); if (rows[i + 1]) rows[i + 1].focus(); else bump(tvEls.grid, true); }
       else if (k === 'ArrowUp') { e.preventDefault(); (rows[i - 1] || tvEls.modeTv).focus(); }
       else if (/^[0-9]$/.test(k)) {
         const ci = CHANNELS.findIndex(c => String(c.num).startsWith(k));
@@ -2166,19 +2383,19 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     if (ch.search || ch.searchQ) {
       // 1. Find the uploads. Video and DVD rips both count (the Archive files many DVD rips as "software").
       const base = ch.searchQ || '(title:(' + ch.search + ') OR subject:(' + ch.search + '))';
-      const simple = ch.terms ? '(' + ch.terms.map(t => 'title:("' + t + '")').join(' OR ') + ')' : base;
       const findIds = async q => {
         const p = new URLSearchParams({ q: q + ' AND mediatype:(movies OR software)' + NSFW_Q, rows: ch.maxItems || 40, page: 1, output: 'json' });
         p.append('fl[]', 'identifier'); p.append('fl[]', 'title'); p.append('fl[]', 'language'); p.append('sort[]', 'identifier asc');
         const j = await fetchJson('https://archive.org/advancedsearch.php?' + p.toString());
         return j.response.docs.filter(d => !NOT_A_SHOW.test(clean(first(d.title))) && (ch.anyLanguage || !looksForeign(d, '', true))).map(d => d.identifier);
       };
-      let found = [], searchFailed = false;
-      try { found = await findIds(base); } catch (e) { searchFailed = true; }
-      if (!found.length && simple !== base) {
-        // Fall back to a plain title search if the fuller one failed or found nothing
-        try { found = await findIds(simple); searchFailed = false; } catch (e) { searchFailed = true; }
-      }
+      // Long lists of show names are asked for a few at a time, then shuffled together so every show gets a look-in
+      const asks = ch.terms ? chunkList(ch.terms, 6).map(termsQ) : [base];
+      let answered = 0;
+      const lists0 = await mapLimit(asks, 2, async q => { try { const r = await findIds(q); answered++; return r; } catch (e) { return []; } });
+      const searchFailed = answered === 0;
+      const found = [];
+      for (let i = 0, more = true; more; i++) { more = false; lists0.forEach(l => { if (i < l.length) { found.push(l[i]); more = true; } }); }
       const ids = [...new Set([].concat(ch.seed || [], found))].slice(0, ch.maxItems || 30);
       // 2. Open each upload and list its episodes, a few at a time so the Archive doesn't turn us away
       let itemFailures = 0;
@@ -2385,6 +2602,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
   }
   function openGuide() {
     buildGuide();
+    rows.forEach((r, i) => { r.style.setProperty('--i', i); replay(r, 'in'); });
     tvEls.gStatus.textContent = ''; tvEls.gStatus.classList.remove('err');
     renderGuide();
     CHANNELS.forEach((c, ci) => getSchedule(ci).then(renderGuide).catch(() => {
@@ -2451,6 +2669,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     tvEls.video.pause();
     tvEls.ch.textContent = 'CH ' + chNum(ch);
     tvEls.bnNum.textContent = chNum(ch);
+    replay(tvEls.ch, 'punch'); replay($('banner'), 'slide');
     tvEls.bnName.textContent = ch.name;
     tvEls.bnTitle.textContent = 'Tuning…';
     tvEls.bnTime.textContent = ''; tvEls.bnNext.textContent = ''; tvEls.bnFill.style.width = '0';
@@ -2606,6 +2825,7 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
     bootEl.classList.add('off');
     setTimeout(() => {
       bootEl.hidden = true;
+      document.querySelector('.brand').classList.add('lit');
       if (state.mode === 'tv') { rows[0] && rows[0].focus(); }
       else {
         const s = els.spines.querySelector('.spine[aria-pressed="true"]') || els.tabs.querySelector('[aria-pressed="true"]');
