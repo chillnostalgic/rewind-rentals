@@ -662,7 +662,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     <p class="guide-note">Each channel runs a 72-hour loop on a shared clock, so whenever you tune in, the show is already underway. Up and down flip channels, number keys jump straight to one.</p>
   </section>
 
-  <footer>Every tape streams straight from the Internet Archive’s public domain film collections. Rewind Rentals hosts no video.</footer>
+  <footer>Every tape streams straight from the Internet Archive’s public domain film collections. Rewind Rentals hosts no video. <span id="ver"></span></footer>
 </div>
 
 <div class="boot" id="boot" role="dialog" aria-label="Starting Rewind Rentals">
@@ -754,6 +754,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
 <script>
 (() => {
   // TV mode: inside the Android TV app (or add ?tv=1 to the address to try it on a computer)
+  const VERSION = '2026.11.13';
   const IN_APP = /RewindRentalsApp/.test(navigator.userAgent);
   const HAS_TOUCH = (navigator.maxTouchPoints || 0) > 0;
   const IS_TV = /RewindTV/.test(navigator.userAgent) || /[?&]tv=1\b/.test(location.search) ||
@@ -1834,16 +1835,19 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   function remotePlayback(video, button, onChange) {
     const r = video && video.remote;
     if (!r || typeof r.prompt !== 'function') return null;
-    const api = { available: false, connected: false, state: 'disconnected' };
+    // Show the button whenever this browser can cast. Chrome's own picker says if no TV is found,
+    // which is friendlier than hiding the button and leaving you wondering where it went.
+    const api = { available: true, connected: false, state: 'disconnected', seen: null };
     const paint = () => {
       button.hidden = !api.available;
       button.textContent = api.connected ? '⬒ On your TV' : api.state === 'connecting' ? '⬒ Connecting…' : '⬒ Cast to TV';
+      button.title = api.seen === false ? 'No TV found yet. Press to look again.' : 'Play this on a TV';
       button.setAttribute('aria-pressed', String(api.connected));
       if (onChange) onChange(api);
     };
     try {
-      r.watchAvailability(a => { api.available = !!a; paint(); }).catch(() => {});
-    } catch (e) { api.available = true; }   // can't check: offer it anyway
+      r.watchAvailability(a => { api.seen = !!a; paint(); }).catch(() => { api.seen = null; paint(); });
+    } catch (e) { api.seen = null; }   // this browser can't check in advance: offer it anyway
     ['connecting', 'connect', 'disconnect'].forEach(ev => r.addEventListener(ev, () => {
       api.state = r.state || (ev === 'connect' ? 'connected' : ev === 'connecting' ? 'connecting' : 'disconnected');
       api.connected = api.state === 'connected';
@@ -1959,6 +1963,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   function wake() {
     els.player.classList.remove('idle');
     clearTimeout(idleTimer);
+    if (HAS_TOUCH) return;   // on a phone the buttons stay put, so Cast is always within reach
     idleTimer = setTimeout(() => { if (!castState.on && !castState.phone && !els.video.paused) els.player.classList.add('idle'); }, 3500);
   }
   function tracking() {
@@ -2152,7 +2157,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     }
   });
   els.player.addEventListener('mousemove', wake);
-  els.video.addEventListener('click', () => { toggle(); wake(); });
+  els.video.addEventListener('click', () => { if (!HAS_TOUCH) toggle(); wake(); });
 
   els.playBtn.addEventListener('click', () => insertTape(false));
   els.keepBtn.addEventListener('click', () => {
@@ -2859,6 +2864,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   function wakeTv() {
     tvEls.tv.classList.remove('idle');
     clearTimeout(tv.idleTimer);
+    if (HAS_TOUCH) return;
     tv.idleTimer = setTimeout(() => { if (!tv.phoneCast) tvEls.tv.classList.add('idle'); }, 5000);
   }
   function tvStatic() { tvEls.noise.classList.remove('on'); void tvEls.noise.offsetWidth; tvEls.noise.classList.add('on'); }
@@ -3063,10 +3069,53 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
 
   window.addEventListener('beforeunload', () => savePos(true));
 
+  const verEl = $('ver'); if (verEl) verEl.textContent = 'v' + VERSION;
   renderTabs();
   renderEras();
   loadShelf(true);
   setMode(state.mode);
+
+  /* Open the page with ?diag=1 on the end to see what this device supports.
+     Useful when casting doesn't appear and we need to know why. */
+  if (/[?&]diag=1\b/.test(location.search)) {
+    const v = document.createElement('video');
+    const lines = [
+      ['Version', VERSION],
+      ['Address', location.protocol + '//' + location.host],
+      ['Secure page (needed to cast)', location.protocol === 'https:' ? 'yes' : 'NO'],
+      ['Inside the app', IN_APP ? 'yes (casting not possible here)' : 'no'],
+      ['Touchscreen', HAS_TOUCH ? 'yes' : 'no'],
+      ['TV layout', IS_TV ? 'yes' : 'no'],
+      ['Phone casting supported', (v.remote && typeof v.remote.prompt === 'function') ? 'yes' : 'NO'],
+      ['Computer cast kit loaded', (window.cast && window.cast.framework) ? 'yes' : 'no'],
+      ['Browser', navigator.userAgent]
+    ];
+    const box = document.createElement('div');
+    box.id = 'diagBox';
+    box.style.cssText = 'position:fixed;inset:0;z-index:999;background:#0a0518;color:#f5f0ff;font:16px/1.5 monospace;padding:20px;overflow:auto';
+    box.innerHTML = '<h2 style="font:bold 20px monospace;margin:0 0 12px">Rewind Rentals: device check</h2>';
+    lines.forEach(([k, val]) => {
+      const p2 = document.createElement('p');
+      p2.style.cssText = 'margin:0 0 8px;word-break:break-word';
+      p2.innerHTML = '<b style="color:#38e1e8">' + k + ':</b> ';
+      p2.appendChild(document.createTextNode(String(val)));
+      box.appendChild(p2);
+    });
+    const note = document.createElement('p');
+    note.style.cssText = 'margin:14px 0 0;color:#ab9fd8';
+    note.textContent = 'Looking for a TV…';
+    box.appendChild(note);
+    try {
+      v.remote.watchAvailability(a => { note.textContent = a ? 'A TV was found on this network.' : 'No TV found on this network yet.'; })
+        .catch(e => { note.textContent = 'Cannot check for TVs in advance (' + (e && e.name) + '). The Cast button still works.'; });
+    } catch (e) { note.textContent = 'Cannot check for TVs on this device.'; }
+    const close = document.createElement('button');
+    close.textContent = 'Close this check';
+    close.style.cssText = 'margin-top:18px;padding:10px 18px;font:16px monospace;background:#ffb627;border:0;border-radius:6px;cursor:pointer';
+    close.onclick = () => box.remove();
+    box.appendChild(close);
+    document.body.appendChild(box);
+  }
 
   // Boot screen: shows on start, any button skips it
   const bootEl = $('boot');
