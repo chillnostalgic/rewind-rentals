@@ -180,6 +180,8 @@ footer{margin-top:18px;color:var(--muted);font-size:15px}
 .ctrls{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
 .ctl{font-family:var(--vcr);font-size:24px;text-transform:uppercase;background:#140b2e;border:2px solid var(--amber);color:var(--amber);border-radius:4px;padding:2px 14px;cursor:pointer}
 .ctl.stop{border-color:var(--pink);color:var(--pink)}
+.ctl.cast{border-color:var(--cyan);color:var(--cyan)}
+.ctl.cast[aria-pressed="true"]{background:rgba(56,225,232,.18)}
 .dur{margin-left:auto;font-size:24px;color:var(--cyan)}
 
 /* Header tools: VCR clock and sound */
@@ -718,6 +720,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
       <button class="ctl" data-act="toggle" id="toggleBtn" type="button">Pause</button>
       <button class="ctl" data-act="rew" type="button">Rew 30s</button>
       <button class="ctl" data-act="ffwd" type="button">FFwd 30s</button>
+      <button class="ctl cast" data-act="cast" type="button" hidden>⬒ Cast to TV</button>
       <button class="ctl" data-act="full" type="button">Full screen</button>
       <button class="ctl stop" data-act="stop" type="button">Stop</button>
       <span class="dur" id="dur"></span>
@@ -741,6 +744,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     <div class="ctrls" id="tvCtrls">
       <button class="ctl" data-act="up" type="button">Ch ▲</button>
       <button class="ctl" data-act="down" type="button">Ch ▼</button>
+      <button class="ctl cast" data-act="cast" type="button" hidden>⬒ Cast to TV</button>
       <button class="ctl" data-act="full" type="button">Full screen</button>
       <button class="ctl stop" data-act="guide" type="button">Guide</button>
     </div>
@@ -1824,6 +1828,37 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     return api;
   })();
 
+  /* Casting from a phone. Android Chrome doesn't support Google's cast kit (that's computers only);
+     phones use the Remote Playback API instead, where the video element itself moves to the TV and
+     keeps answering to play, pause and seek, so our controls go on working. */
+  function remotePlayback(video, button, onChange) {
+    const r = video && video.remote;
+    if (!r || typeof r.prompt !== 'function') return null;
+    const api = { available: false, connected: false, state: 'disconnected' };
+    const paint = () => {
+      button.hidden = !api.available;
+      button.textContent = api.connected ? '⬒ On your TV' : api.state === 'connecting' ? '⬒ Connecting…' : '⬒ Cast to TV';
+      button.setAttribute('aria-pressed', String(api.connected));
+      if (onChange) onChange(api);
+    };
+    try {
+      r.watchAvailability(a => { api.available = !!a; paint(); }).catch(() => {});
+    } catch (e) { api.available = true; }   // can't check: offer it anyway
+    ['connecting', 'connect', 'disconnect'].forEach(ev => r.addEventListener(ev, () => {
+      api.state = r.state || (ev === 'connect' ? 'connected' : ev === 'connecting' ? 'connecting' : 'disconnected');
+      api.connected = api.state === 'connected';
+      paint();
+    }));
+    api.prompt = () => {
+      if (api.connected) { try { r.cancelWatchAvailability && 0; } catch (e) {} }
+      // prompt() both picks a TV and, once connected, offers to stop casting
+      return r.prompt().catch(() => {});
+    };
+    api.paint = paint;
+    paint();
+    return api;
+  }
+
   // Rewind screen then player
   let rwTimer = null;
   async function insertTape(fromStart) {
@@ -1924,7 +1959,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   function wake() {
     els.player.classList.remove('idle');
     clearTimeout(idleTimer);
-    idleTimer = setTimeout(() => { if (!castState.on && !els.video.paused) els.player.classList.add('idle'); }, 3500);
+    idleTimer = setTimeout(() => { if (!castState.on && !castState.phone && !els.video.paused) els.player.classList.add('idle'); }, 3500);
   }
   function tracking() {
     sfx.static();
@@ -1932,7 +1967,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   }
 
   // What the player is driving: the screen in front of you, or a TV across the room
-  const castState = { on: false };
+  const castState = { on: false, phone: false };
   function castTick() {
     els.osdTime.textContent = fmt(Cast.time);
     els.dur.textContent = Cast.duration ? fmt(Cast.duration) : '';
@@ -2109,6 +2144,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
       case 'rew': seek(-30); break;
       case 'ffwd': seek(30); break;
       case 'stop': stopPlayer(); break;
+      case 'cast': if (playerRemote) playerRemote.prompt(); break;
       case 'full':
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         else if (els.player.requestFullscreen) els.player.requestFullscreen().catch(() => {});
@@ -2170,6 +2206,22 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   });
   Cast.onChange = renderCast;
   Cast.load();
+
+  // Phones: the Cast button in the player's own controls
+  const castCtl = els.ctrls.querySelector('[data-act="cast"]');
+  const playerRemote = remotePlayback(els.video, castCtl, api => {
+    castState.phone = api.connected;
+    if (els.player.hidden) return;
+    $('casting').hidden = !api.connected;
+    els.pTitle.hidden = api.connected;
+    els.ctrls.querySelector('[data-act="full"]').hidden = api.connected;
+    if (api.connected) {
+      const d = state.playing;
+      $('castName').textContent = 'your TV';
+      $('castTitle').textContent = d ? (clean(first(d.title)) || d.identifier) : '';
+      els.player.classList.remove('idle');
+    }
+  });
 
   // Swap to the next copy of this film, for when one looks rough
   els.altBtn.addEventListener('click', () => {
@@ -2807,7 +2859,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
   function wakeTv() {
     tvEls.tv.classList.remove('idle');
     clearTimeout(tv.idleTimer);
-    tv.idleTimer = setTimeout(() => tvEls.tv.classList.add('idle'), 5000);
+    tv.idleTimer = setTimeout(() => { if (!tv.phoneCast) tvEls.tv.classList.add('idle'); }, 5000);
   }
   function tvStatic() { tvEls.noise.classList.remove('on'); void tvEls.noise.offsetWidth; tvEls.noise.classList.add('on'); }
   function standBy(msg) {
@@ -2987,6 +3039,11 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
     const token = tv.token, src = tvEls.video.currentSrc;
     watchForPicture(tvEls.video, () => token === tv.token && tvEls.video.currentSrc === src && !tvEls.tv.hidden, tvTrySpare);
   });
+  const tvCastCtl = tvEls.ctrls.querySelector('[data-act="cast"]');
+  const tvRemote = remotePlayback(tvEls.video, tvCastCtl, api => {
+    tv.phoneCast = api.connected;
+    if (api.connected) { hideIdent(); tvEls.standby.hidden = true; tvEls.tv.classList.remove('idle'); }
+  });
   tvEls.tv.addEventListener('mousemove', wakeTv);
   tvEls.tv.addEventListener('click', e => { wakeTv(); if (!e.target.closest('.ctrls')) startAfterTap(); });
   tvEls.ctrls.addEventListener('click', e => {
@@ -2996,6 +3053,7 @@ body.sheet-open .sheet-close::before{animation:handle 1.2s ease-in-out .4s 2}
       case 'up': flip(1); break;
       case 'down': flip(-1); break;
       case 'guide': closeTv(); break;
+      case 'cast': if (tvRemote) tvRemote.prompt(); break;
       case 'full':
         if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
         else if (tvEls.tv.requestFullscreen) tvEls.tv.requestFullscreen().catch(() => {});
